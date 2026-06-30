@@ -35,9 +35,6 @@ Trong quá trình refactor lại ứng dụng, mình đã tập trung tối ưu 
     *   Fix triệt để lỗi crash app trên nền tảng Linux do thiếu cấu hình `flutter_local_notifications`.
     *   Cập nhật thông tin tác giả bản refactor và version mới nhất (`2026.07.01`).
 
-## Tải xuống (Download APK)
-*(Khu vực này sẽ được cập nhật link tải APK bản Release để các bạn sinh viên Đại Học Thủy Lợi có thể tải về và cài đặt trực tiếp trên điện thoại Android).*
-
 ## Tác giả gốc
 
 Rất cảm ơn tác giả gốc của ứng dụng đã tạo ra một nền tảng tuyệt vời để mình có thể dựa vào và phát triển thêm.
