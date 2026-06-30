@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:forui/forui.dart';
 import 'package:shimmer/shimmer.dart';
 
 class ScheduleSkeleton extends StatelessWidget {
@@ -6,8 +7,8 @@ class ScheduleSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final baseColor = Theme.of(context).colorScheme.surfaceContainerHighest;
-    final highlightColor = Theme.of(context).colorScheme.surface;
+    final baseColor = context.theme.colorScheme.muted;
+    final highlightColor = context.theme.colorScheme.border;
 
     return ListView.builder(
       itemCount: 6,
@@ -27,7 +28,7 @@ class ScheduleSkeleton extends StatelessWidget {
                 width: 60,
                 height: 60,
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: baseColor,
                   borderRadius: BorderRadius.circular(12),
                 ),
               ),
@@ -41,7 +42,7 @@ class ScheduleSkeleton extends StatelessWidget {
                       width: double.infinity,
                       height: 14,
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: baseColor,
                         borderRadius: BorderRadius.circular(4),
                       ),
                     ),
@@ -50,7 +51,7 @@ class ScheduleSkeleton extends StatelessWidget {
                       width: 150,
                       height: 12,
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: baseColor,
                         borderRadius: BorderRadius.circular(4),
                       ),
                     ),
@@ -59,7 +60,7 @@ class ScheduleSkeleton extends StatelessWidget {
                       width: 100,
                       height: 10,
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: baseColor,
                         borderRadius: BorderRadius.circular(4),
                       ),
                     ),
