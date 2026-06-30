@@ -1,0 +1,127 @@
+name: Build & Release in Main branch
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    if: "contains(github.event.head_commit.message, '[release]')"
+    name: Build & Release
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Setup Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: "temurin"
+          java-version: "21"
+
+      # Cache cho nhanh
+      - name: Cache Gradle & Pub
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.pub-cache
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-pub-${{ hashFiles('**/pubspec.lock') }}-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-pub-
+
+      - name: Create necessary files
+        run: |
+          # Giải mã Key Mới (2026) -> rel.jks
+          echo "${{ secrets.KEYSTORE_BASE64 }}" | base64 --decode > android/rel.jks
+          # Giải mã Key Cũ (2025) -> old.jks
+          echo "${{ secrets.OLD_KEYSTORE_BASE64 }}" | base64 --decode > android/old.jks
+          # Giải mã Lineage
+          echo "${{ secrets.LINEAGE_BASE64 }}" | base64 --decode > android/my.lineage
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: "3.38.7"
+          channel: "stable"
+
+      - name: Get dependencies
+        run: flutter pub get
+
+      - name: Fetch Crashpad Sources
+        run: |
+          chmod +x android/app/src/main/cpp/init_crashpad_source.sh
+          ./android/app/src/main/cpp/init_crashpad_source.sh
+
+      - name: Build APK (Optimized)
+        env:
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+        run: flutter build apk --release --obfuscate --split-debug-info=build/app/outputs/symbols
+
+      # --- ĐOẠN NÀY QUAN TRỌNG NHẤT ---
+      - name: Sign APK with Key Rotation (Full History)
+        run: |
+          BUILD_TOOLS_VERSION=$(ls $ANDROID_HOME/build-tools/ | sort -r | head -n 1)
+          APKSIGNER="$ANDROID_HOME/build-tools/$BUILD_TOOLS_VERSION/apksigner"
+
+          echo "Using apksigner at: $APKSIGNER"
+
+          # Cấu trúc lệnh: Ký bằng Key Cũ trước, rồi bảo nó "kế nhiệm" bởi Key Mới kèm Lineage
+          # Giả định Pass/Alias của 2 key GIỐNG NHAU (dùng chung biến secrets)
+
+          $APKSIGNER sign \
+            --ks android/old.jks \
+            --ks-key-alias ${{ secrets.KEY_ALIAS }} \
+            --ks-pass pass:${{ secrets.STORE_PASSWORD }} \
+            --key-pass pass:${{ secrets.KEY_PASSWORD }} \
+            --next-signer \
+            --ks android/rel.jks \
+            --ks-key-alias ${{ secrets.KEY_ALIAS }} \
+            --ks-pass pass:${{ secrets.STORE_PASSWORD }} \
+            --key-pass pass:${{ secrets.KEY_PASSWORD }} \
+            --lineage android/my.lineage \
+            --v1-signing-enabled true \
+            --v2-signing-enabled true \
+            --v3-signing-enabled true \
+            build/app/outputs/flutter-apk/app-release.apk
+            
+          # Verify và in ra
+          echo "--- VERIFY RESULT ---"
+          $APKSIGNER verify --print-certs -v build/app/outputs/flutter-apk/app-release.apk
+
+      - name: Swap Keystore for App Bundle (Use Old Key for Store Upload)
+        run: |
+          echo "Overwriting rel.jks with Old Key for Google Play Upload..."
+          cp android/old.jks android/rel.jks
+
+      - name: Build App Bundle
+        env:
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
+        run: flutter build appbundle --release --obfuscate --split-debug-info=build/app/outputs/symbols
+
+      - name: Generate Release Tag
+        id: tag
+        run: |
+          echo "release_tag=release_$(date +"%Y.%m.%d_%H-%M")" >> $GITHUB_OUTPUT
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.tag.outputs.release_tag }}
+          files: |
+            build/app/outputs/flutter-apk/app-release.apk
+            build/app/outputs/bundle/release/app-release.aab
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

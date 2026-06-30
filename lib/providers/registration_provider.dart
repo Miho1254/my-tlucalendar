@@ -1,0 +1,271 @@
+import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:tlucalendar/core/error/failures.dart';
+import 'package:tlucalendar/features/registration/domain/entities/subject_registration.dart';
+import 'package:tlucalendar/features/registration/domain/usecases/cancel_course.dart';
+import 'package:tlucalendar/features/registration/domain/usecases/get_registration_data.dart';
+import 'package:tlucalendar/features/registration/domain/usecases/register_course.dart';
+import 'package:tlucalendar/providers/auth_provider.dart';
+
+class RegistrationProvider extends ChangeNotifier {
+  final GetRegistrationData getRegistrationData;
+  final RegisterCourse registerCourse;
+  final CancelCourse cancelCourse;
+
+  RegistrationProvider({
+    required this.getRegistrationData,
+    required this.registerCourse,
+    required this.cancelCourse,
+  });
+
+  AuthProvider? _authProvider;
+
+  void setAuthProvider(AuthProvider auth) {
+    _authProvider = auth;
+  }
+
+  // State
+  bool _isLoading = false;
+  String? _errorMessage;
+  List<SubjectRegistration> _subjects = [];
+
+  // Getters
+  bool get isLoading => _isLoading;
+  String? get errorMessage => _errorMessage;
+  List<SubjectRegistration> get subjects => _subjects;
+
+  String? get _userPersonId {
+    return _authProvider?.currentUser?.id?.toString();
+  }
+
+  Future<void> fetchRegistrationData(String periodId) async {
+    final personId = _userPersonId;
+    final token = _authProvider?.accessToken;
+    if (personId == null || token == null) {
+      _errorMessage = "Chưa đăng nhập"; // User not logged in
+      notifyListeners();
+      return;
+    }
+
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    final result = await getRegistrationData(personId, periodId, token);
+
+    result.fold(
+      (failure) {
+        _errorMessage = _mapFailureToMessage(failure);
+        _subjects = [];
+      },
+      (data) {
+        _subjects = data;
+      },
+    );
+
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  Future<bool> registerSubject(String periodId, String payload) async {
+    final personId = _userPersonId;
+    final token = _authProvider?.accessToken;
+    if (personId == null || token == null) return false;
+
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    final result = await registerCourse(personId, periodId, payload, token);
+
+    bool success = false;
+    // Check for Review Mode Signal or Real Error
+    bool isReviewMode = false;
+    result.fold(
+      (failure) {
+        // DEBUG PRINT
+        debugPrint("RegisterCheck: Failure is ${failure.runtimeType}");
+        debugPrint(
+          "RegisterCheck: Failure toString() is '${failure.toString()}'",
+        );
+
+        // Robust check: Type check OR String check
+        final bool isReviewModeFailure = failure is ReviewModeSuccessFailure;
+        final bool isReviewModeString =
+            failure.toString().contains("ReviewMode") ||
+            failure.toString().contains("SafeModeSuccess");
+
+        debugPrint("RegisterCheck: isReviewModeFailure=$isReviewModeFailure");
+        debugPrint("RegisterCheck: isReviewModeString=$isReviewModeString");
+
+        if (isReviewModeFailure || isReviewModeString) {
+          debugPrint("RegisterCheck: MATCHED! Treating as success.");
+          isReviewMode = true;
+          success = true; // Treat as success
+          _handleOptimisticUpdate(payload, isRegister: true);
+        } else {
+          debugPrint("RegisterCheck: NO MATCH. Treating as error.");
+          _errorMessage = _mapFailureToMessage(failure);
+        }
+      },
+      (_) {
+        success = true;
+      },
+    );
+
+    if (!success) {
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+
+    // Refresh only if NOT in Review Mode (Real server update)
+    if (!isReviewMode) {
+      await fetchRegistrationData(periodId);
+    } else {
+      _isLoading = false;
+      notifyListeners();
+    }
+    return true;
+  }
+
+  Future<bool> cancelSubjectRegistration(
+    String periodId,
+    String payload,
+  ) async {
+    final personId = _userPersonId;
+    final token = _authProvider?.accessToken;
+    if (personId == null || token == null) return false;
+
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    final result = await cancelCourse(personId, periodId, payload, token);
+
+    bool success = false;
+    bool isReviewMode = false;
+    result.fold(
+      (failure) {
+        // DEBUG PRINT
+        debugPrint("CancelCheck: Failure is ${failure.runtimeType}");
+        debugPrint(
+          "CancelCheck: Failure toString() is '${failure.toString()}'",
+        );
+
+        // Robust check: Type check OR String check
+        final bool isReviewModeFailure = failure is ReviewModeSuccessFailure;
+        final bool isReviewModeString = failure.toString().contains(
+          "ReviewMode",
+        );
+
+        debugPrint("CancelCheck: isReviewModeFailure=$isReviewModeFailure");
+        debugPrint("CancelCheck: isReviewModeString=$isReviewModeString");
+
+        if (isReviewModeFailure || isReviewModeString) {
+          debugPrint("CancelCheck: MATCHED! Treating as success.");
+          isReviewMode = true;
+          success = true;
+          _handleOptimisticUpdate(payload, isRegister: false);
+        } else {
+          debugPrint("CancelCheck: NO MATCH. Treating as error.");
+          _errorMessage = _mapFailureToMessage(failure);
+        }
+      },
+      (_) {
+        success = true;
+      },
+    );
+
+    if (!success) {
+      _isLoading = false;
+      notifyListeners();
+      return false;
+    }
+
+    if (!isReviewMode) {
+      await fetchRegistrationData(periodId);
+    } else {
+      _isLoading = false;
+      notifyListeners();
+    }
+    return true;
+  }
+
+  void _handleOptimisticUpdate(String payload, {required bool isRegister}) {
+    try {
+      debugPrint("Optimistic Update: Payload=$payload");
+      final Map<String, dynamic> json = jsonDecode(payload);
+
+      // Robust ID parsing
+      dynamic idVal = json['id'];
+      int? courseSubjectId;
+      if (idVal is int) {
+        courseSubjectId = idVal;
+      } else if (idVal is String) {
+        courseSubjectId = int.tryParse(idVal);
+      }
+
+      debugPrint(
+        "Optimistic Update: TargetID=$courseSubjectId, isRegister=$isRegister",
+      );
+
+      if (courseSubjectId == null) {
+        debugPrint("Optimistic Update: TargetID is null. Aborting.");
+        return;
+      }
+
+      bool found = false;
+
+      // Re-map the _subjects list to create a new state
+      _subjects = _subjects.map((sub) {
+        bool changed = false;
+        final newCourseSubjects = sub.courseSubjects.map((cs) {
+          if (cs.id == courseSubjectId) {
+            changed = true;
+            found = true;
+            debugPrint(
+              "Optimistic Update: Found match! Toggling isSelected to $isRegister",
+            );
+            // Toggle selection based on action
+            return cs.copyWith(isSelected: isRegister);
+          }
+          return cs;
+        }).toList();
+
+        if (changed) {
+          return sub.copyWith(courseSubjects: newCourseSubjects);
+        }
+        return sub;
+      }).toList();
+
+      if (found) {
+        notifyListeners();
+        debugPrint("Optimistic Update: Listeners notified.");
+      } else {
+        debugPrint(
+          "Optimistic Update: No matching CourseSubject found for ID $courseSubjectId",
+        );
+      }
+    } catch (e, stack) {
+      debugPrint("Optimistic Update Failed: $e\n$stack");
+    }
+  }
+
+  String _mapFailureToMessage(Failure failure) {
+    debugPrint(
+      "MapFailure: RuntimeType=${failure.runtimeType}, Message=${failure.message}",
+    );
+    if (failure is ServerFailure) {
+      return failure.message;
+    } else if (failure is CacheFailure) {
+      return failure.message;
+    } else if (failure is ReviewModeSuccessFailure) {
+      return failure
+          .message; // Should have been handled above, but just in case
+    } else {
+      return failure
+          .toString(); // Fallback that explains the "ReviewModeSuccessFailure(...)" output we saw!
+    }
+  }
+}
