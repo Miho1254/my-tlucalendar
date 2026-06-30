@@ -36,11 +36,11 @@ class _GradeScreenState extends State<GradeScreen> {
     return FScaffold(
       header: FHeader.nested(
         title: const Text('Tra cứu điểm'),
-        actions: [
+        suffixes: [
           FHeaderAction(icon: FIcon(FLucideIcons.refreshCw), onPress: _fetchGrades),
         ],
       ),
-      content: Consumer<GradeProvider>(
+      child: Consumer<GradeProvider>(
         builder: (context, provider, child) {
           if (provider.isLoading) {
             return const Center(child: CircularProgressIndicator());

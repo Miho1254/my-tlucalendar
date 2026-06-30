@@ -49,7 +49,7 @@ class _CourseRegistrationScreenState extends State<CourseRegistrationScreen> {
     return FScaffold(
       header: FHeader.nested(
         title: _isSearching ? _buildSearchBar() : Text(widget.period.name),
-        actions: [
+        suffixes: [
           if (_isSearching)
             FHeaderAction(
               icon: FIcon(FLucideIcons.x),
@@ -71,7 +71,7 @@ class _CourseRegistrationScreenState extends State<CourseRegistrationScreen> {
             ),
         ],
       ),
-      content: Consumer<RegistrationProvider>(
+      child: Consumer<RegistrationProvider>(
         builder: (context, provider, child) {
           // Only show full loading if we have NO data.
           // If we have data but are refreshing/acting, the individual buttons will handle loading state
