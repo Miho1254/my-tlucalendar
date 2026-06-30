@@ -37,7 +37,7 @@ class _GradeScreenState extends State<GradeScreen> {
       header: FHeader.nested(
         title: const Text('Tra cứu điểm'),
         suffixes: [
-          FHeaderAction(icon: FIcon(FLucideIcons.refreshCw), onPress: _fetchGrades),
+          FHeaderAction(icon: Icon(FLucideIcons.refreshCw), onPress: _fetchGrades),
         ],
       ),
       child: Consumer<GradeProvider>(

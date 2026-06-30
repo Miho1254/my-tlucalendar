@@ -52,7 +52,7 @@ class _CourseRegistrationScreenState extends State<CourseRegistrationScreen> {
         suffixes: [
           if (_isSearching)
             FHeaderAction(
-              icon: FIcon(FLucideIcons.x),
+              icon: Icon(FLucideIcons.x),
               onPress: () {
                 setState(() {
                   _isSearching = false;
@@ -62,7 +62,7 @@ class _CourseRegistrationScreenState extends State<CourseRegistrationScreen> {
             )
           else
             FHeaderAction(
-              icon: FIcon(FLucideIcons.search),
+              icon: Icon(FLucideIcons.search),
               onPress: () {
                 setState(() {
                   _isSearching = true;

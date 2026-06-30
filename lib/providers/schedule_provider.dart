@@ -121,6 +121,7 @@ class ScheduleProvider extends ChangeNotifier {
           }
         },
         (years) async {
+          _isOfflineMode = false;
           _processSchoolYears(years);
         },
       );
@@ -167,8 +168,19 @@ class ScheduleProvider extends ChangeNotifier {
         var hoursResult = results[1] as dynamic;
 
         await yearsResult.fold(
-          (f) async => _errorMessage = f.message,
-          (r) async => _processSchoolYears(r),
+          (f) async {
+            if (f is CachedDataFailure<List<SchoolYear>>) {
+              _isOfflineMode = true;
+              _processSchoolYears(f.data);
+            } else {
+              _errorMessage = f.message;
+            }
+          },
+          (r) async {
+            _isOfflineMode = false;
+            _errorMessage = null;
+            _processSchoolYears(r);
+          },
         );
         hoursResult.fold((f) => null, (r) => _courseHours = r);
 
