@@ -1,20 +1,16 @@
-# TLU Calendar - Ứng dụng xem lịch học, lịch thi Đại Học Thủy Lợi (Miho's Version)
+# TLU Calendar (Miho's Version)
 
-**TLU Calendar** là ứng dụng hữu ích dành riêng cho sinh viên **Đại học Thủy Lợi (Thuy Loi University - TLU)**, giúp quản lý lịch học, lịch thi, tra cứu điểm và đăng ký học một cách tiện lợi, nhanh chóng nhất. 
+Đây là dự án cá nhân được refactor lại từ ứng dụng TLU Calendar gốc theo sở thích và nhu cầu cá nhân, vì một số tính năng của phiên bản gốc chưa đáp ứng được mong muốn của mình.
 
-*(Lưu ý: Đây là dự án cá nhân được refactor và tối ưu lại UI/UX từ ứng dụng TLU Calendar gốc nhằm mang lại trải nghiệm mượt mà, đẹp mắt hơn cho sinh viên Thủy Lợi. Nếu bạn đang tìm kiếm **file APK TLU Calendar** để cài đặt, hãy xem phần Tải xuống ở bên dưới).*
+## Tác giả gốc
 
----
+🙏 Rất cảm ơn tác giả gốc của ứng dụng đã tạo ra một nền tảng tuyệt vời để mình có thể dựa vào và phát triển thêm.
+* **Tác giả:** nekkochan0x0007
+* **Source code gốc:** [https://gitlab.com/nekkochan0x0007/tlucalendar](https://gitlab.com/nekkochan0x0007/tlucalendar)
 
-## 🚀 Tính năng nổi bật cho Sinh viên TLU
-Ứng dụng cung cấp các công cụ thiết yếu cho cuộc sống đại học:
-- **Xem Lịch Học & Lịch Thi:** Đồng bộ nhanh chóng, giao diện trực quan, dễ dàng theo dõi thời khóa biểu hàng tuần.
-- **Tra cứu điểm:** Xem điểm thi, điểm tổng kết các học kỳ.
-- **Đăng ký môn học:** Tiện ích hỗ trợ sinh viên thao tác nhanh gọn.
-- **Hỗ trợ toàn diện Light/Dark Mode:** Giao diện tự thích ứng bảo vệ mắt dù xem lịch ban ngày hay ban đêm.
+## Những thay đổi chính trong phiên bản này
 
-## ✨ Những thay đổi chính trong phiên bản Refactor (Miho's Version)
-Trong quá trình refactor lại ứng dụng, mình đã tập trung tối ưu hóa giao diện (UI) chuẩn hiện đại và trải nghiệm người dùng (UX):
+Trong quá trình refactor, mình đã tập trung vào việc tối ưu hóa giao diện (UI) và trải nghiệm người dùng (UX), đặc biệt là:
 
 1.  **Thiết kế lại toàn diện Cài đặt (Settings):**
     *   Áp dụng ngôn ngữ thiết kế chuẩn Apple HIG kết hợp với hệ thống component của `forui`.
@@ -35,18 +31,6 @@ Trong quá trình refactor lại ứng dụng, mình đã tập trung tối ưu 
     *   Fix triệt để lỗi crash app trên nền tảng Linux do thiếu cấu hình `flutter_local_notifications`.
     *   Cập nhật thông tin tác giả bản refactor và version mới nhất (`2026.07.01`).
 
-## 📥 Tải xuống (Download APK)
-*(Khu vực này sẽ được cập nhật link tải APK bản Release để các bạn sinh viên Đại Học Thủy Lợi có thể tải về và cài đặt trực tiếp trên điện thoại Android).*
-
-## 🤝 Tác giả gốc
-
-🙏 Rất cảm ơn tác giả gốc của ứng dụng đã tạo ra một nền tảng tuyệt vời để mình có thể dựa vào và phát triển thêm.
-* **Tác giả:** nekkochan0x0007
-* **Source code gốc:** [https://gitlab.com/nekkochan0x0007/tlucalendar](https://gitlab.com/nekkochan0x0007/tlucalendar)
-
-## 🎨 Tác giả bản Refactor
+## Tác giả bản Refactor
 
 * Nguyễn Duy Thành & Đặng Quang Hiển (Miho)
-
----
-*Từ khóa tìm kiếm (SEO): Đại học Thủy Lợi, TLU, Thuy Loi University, TLU Calendar, Lịch học Thủy Lợi, Tra cứu điểm TLU, App sinh viên Thủy Lợi, Download APK TLU Calendar.*
