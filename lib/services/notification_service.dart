@@ -1,3 +1,5 @@
+import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:timezone/timezone.dart' as tz;
@@ -71,11 +73,13 @@ class NotificationService {
       onDidReceiveNotificationResponse: _onNotificationTapped,
     );
 
-    // Set up FCM Background handler
-    FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
-
     await _requestPermissions();
-    await _setupFcmListeners();
+
+    if (kIsWeb || Platform.isAndroid || Platform.isIOS || Platform.isMacOS) {
+      // Set up FCM Background handler
+      FirebaseMessaging.onBackgroundMessage(firebaseMessagingBackgroundHandler);
+      await _setupFcmListeners();
+    }
 
     _initialized = true;
   }
