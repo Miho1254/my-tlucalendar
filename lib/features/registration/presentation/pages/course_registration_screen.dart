@@ -5,6 +5,8 @@ import 'package:tlucalendar/features/registration/domain/entities/subject_regist
 import 'package:tlucalendar/features/schedule/domain/entities/semester_register_period.dart';
 import 'package:tlucalendar/providers/schedule_provider.dart';
 import 'dart:convert'; // For jsonEncode
+import 'package:forui/forui.dart';
+import 'package:forui_assets/forui_assets.dart';
 
 class CourseRegistrationScreen extends StatefulWidget {
   final SemesterRegisterPeriod period;
@@ -44,38 +46,24 @@ class _CourseRegistrationScreenState extends State<CourseRegistrationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        leading: _isSearching
-            ? IconButton(
-                icon: const Icon(
-                  Icons.close,
-                ), // Use 'Close' (X) to indicate "Exit Search"
-                tooltip: "Thoát tìm kiếm",
-                onPressed: () {
-                  setState(() {
-                    _isSearching = false;
-                    _searchController.clear();
-                  });
-                },
-              )
-            : null, // Default AutoLeading
+    return FScaffold(
+      header: FHeader.nested(
         title: _isSearching ? _buildSearchBar() : Text(widget.period.name),
         actions: [
           if (_isSearching)
-            if (_searchQuery.isNotEmpty)
-              IconButton(
-                icon: const Icon(Icons.clear),
-                onPressed: () {
+            FHeaderAction(
+              icon: FIcon(FLucideIcons.x),
+              onPress: () {
+                setState(() {
+                  _isSearching = false;
                   _searchController.clear();
-                },
-              )
-            else
-              const SizedBox()
+                });
+              },
+            )
           else
-            IconButton(
-              icon: const Icon(Icons.search),
-              onPressed: () {
+            FHeaderAction(
+              icon: FIcon(FLucideIcons.search),
+              onPress: () {
                 setState(() {
                   _isSearching = true;
                 });
@@ -83,7 +71,7 @@ class _CourseRegistrationScreenState extends State<CourseRegistrationScreen> {
             ),
         ],
       ),
-      body: Consumer<RegistrationProvider>(
+      content: Consumer<RegistrationProvider>(
         builder: (context, provider, child) {
           // Only show full loading if we have NO data.
           // If we have data but are refreshing/acting, the individual buttons will handle loading state
@@ -129,6 +117,7 @@ class _CourseRegistrationScreenState extends State<CourseRegistrationScreen> {
 
           return ListView.builder(
             itemCount: filteredSubjects.length,
+            padding: const EdgeInsets.only(bottom: 24),
             itemBuilder: (context, index) {
               return _SubjectItem(
                 subject: filteredSubjects[index],
@@ -170,15 +159,13 @@ class _SubjectItemState extends State<_SubjectItem> {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: Theme.of(context).colorScheme.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(
-          color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.15),
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+          borderRadius: BorderRadius.circular(16),
         ),
-      ),
       clipBehavior: Clip.antiAlias,
       child: Column(
         children: [
@@ -188,14 +175,7 @@ class _SubjectItemState extends State<_SubjectItem> {
               style: const TextStyle(fontWeight: FontWeight.bold),
             ),
             subtitle: Text('Số tín chỉ: ${widget.subject.numberOfCredit}'),
-            trailing: IconButton(
-              icon: Icon(_isExpanded ? Icons.expand_less : Icons.expand_more),
-              onPressed: () {
-                setState(() {
-                  _isExpanded = !_isExpanded;
-                });
-              },
-            ),
+            trailing: FIcon(_isExpanded ? FLucideIcons.chevronUp : FLucideIcons.chevronDown),
             onTap: () {
               setState(() {
                 _isExpanded = !_isExpanded;

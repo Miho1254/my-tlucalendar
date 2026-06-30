@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:tlucalendar/features/grades/domain/entities/student_mark.dart';
 import 'package:tlucalendar/providers/auth_provider.dart';
 import 'package:tlucalendar/providers/grade_provider.dart';
+import 'package:forui/forui.dart';
+import 'package:forui_assets/forui_assets.dart';
 
 class GradeScreen extends StatefulWidget {
   const GradeScreen({super.key});
@@ -31,14 +33,14 @@ class _GradeScreenState extends State<GradeScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
+    return FScaffold(
+      header: FHeader.nested(
         title: const Text('Tra cứu điểm'),
         actions: [
-          IconButton(icon: const Icon(Icons.refresh), onPressed: _fetchGrades),
+          FHeaderAction(icon: FIcon(FLucideIcons.refreshCw), onPress: _fetchGrades),
         ],
       ),
-      body: Consumer<GradeProvider>(
+      content: Consumer<GradeProvider>(
         builder: (context, provider, child) {
           if (provider.isLoading) {
             return const Center(child: CircularProgressIndicator());
@@ -76,34 +78,35 @@ class _GradeScreenState extends State<GradeScreen> {
 
           return ListView.builder(
             itemCount: semesterKeys.length,
-            padding: const EdgeInsets.all(8.0),
+            padding: const EdgeInsets.only(bottom: 24),
             itemBuilder: (context, index) {
               final semesterName = semesterKeys[index];
               final grades = groupedGrades[semesterName]!;
 
-              return Container(
-                margin: const EdgeInsets.symmetric(vertical: 8),
-                decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.surface,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.15),
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Container(
+                  decoration: BoxDecoration(
+                    color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                    borderRadius: BorderRadius.circular(16),
                   ),
-                ),
-                clipBehavior: Clip.antiAlias,
-                child: ExpansionTile(
-                  key: PageStorageKey(semesterName),
-                  title: Text(
-                    semesterName,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
+                  clipBehavior: Clip.antiAlias,
+                  child: ExpansionTile(
+                    shape: const Border(),
+                    collapsedShape: const Border(),
+                    key: PageStorageKey(semesterName),
+                    title: Text(
+                      semesterName,
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                      ),
                     ),
+                    subtitle: Text('${grades.length} môn học'),
+                    children: grades
+                        .map((mark) => _buildGradeItem(mark))
+                        .toList(),
                   ),
-                  subtitle: Text('${grades.length} môn học'),
-                  children: grades
-                      .map((mark) => _buildGradeItem(mark))
-                      .toList(),
                 ),
               );
             },
@@ -123,7 +126,7 @@ class _GradeScreenState extends State<GradeScreen> {
       decoration: BoxDecoration(
         border: Border(
           top: BorderSide(
-            color: Theme.of(context).dividerColor.withValues(alpha: 0.5),
+            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.1),
           ),
         ),
       ),

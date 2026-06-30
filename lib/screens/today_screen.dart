@@ -199,59 +199,38 @@ class _TodayScreenState extends State<TodayScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(
-                            'Tiện ích',
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                  color: Theme.of(context).colorScheme.onSurface,
-                                ),
+                          Padding(
+                            padding: const EdgeInsets.only(left: 8, bottom: 8),
+                            child: Text(
+                              'Tiện ích',
+                              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                  ),
+                            ),
                           ),
-                          const SizedBox(height: 12),
-                          Row(
+                          FTileGroup(
                             children: [
-                              Expanded(
-                                child: GestureDetector(
-                                  onTap: () {
-                                    Navigator.push(
-                                      context,
-                                      MaterialPageRoute(builder: (_) => const GradeScreen()),
-                                    );
-                                  },
-                                  child: FCard.raw(
-                                    child: Padding(
-                                      padding: const EdgeInsets.symmetric(vertical: 16),
-                                      child: Column(
-                                        children: [
-                                          Icon(FLucideIcons.graduationCap, color: Theme.of(context).colorScheme.primary, size: 28),
-                                          const SizedBox(height: 8),
-                                          Text('Tra cứu điểm', style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.w600)),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ),
+                              FTile(
+                                prefix: Icon(FLucideIcons.graduationCap, color: Theme.of(context).colorScheme.primary),
+                                title: const Text('Tra cứu điểm'),
+                                suffix: const Icon(FLucideIcons.chevronRight, size: 20),
+                                onPress: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (_) => const GradeScreen()),
+                                  );
+                                },
                               ),
-                              const SizedBox(width: 16),
-                              Expanded(
-                                child: GestureDetector(
-                                  onTap: () {
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(content: Text('Tính năng đang phát triển')),
-                                    );
-                                  },
-                                  child: FCard.raw(
-                                    child: Padding(
-                                      padding: const EdgeInsets.symmetric(vertical: 16),
-                                      child: Column(
-                                        children: [
-                                          Icon(FLucideIcons.bookOpen, color: Theme.of(context).colorScheme.primary, size: 28),
-                                          const SizedBox(height: 8),
-                                          Text('Đăng ký học', style: TextStyle(color: Theme.of(context).colorScheme.onSurface, fontWeight: FontWeight.w600)),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ),
+                              FTile(
+                                prefix: Icon(FLucideIcons.bookOpen, color: Theme.of(context).colorScheme.primary),
+                                title: const Text('Đăng ký học'),
+                                suffix: const Icon(FLucideIcons.chevronRight, size: 20),
+                                onPress: () {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(content: Text('Tính năng đang phát triển')),
+                                  );
+                                },
                               ),
                             ],
                           ),
