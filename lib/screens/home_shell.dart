@@ -88,7 +88,7 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
 
     return Scaffold(
       extendBody: true,          // content flows beneath the Liquid Glass bar
-      backgroundColor: Theme.of(context).colorScheme.surface,
+      backgroundColor: context.theme.scaffoldStyle.backgroundColor,
       body: IndexedStack(
         index: _selectedIndex,
         children: _screens,

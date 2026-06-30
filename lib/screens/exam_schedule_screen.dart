@@ -89,16 +89,11 @@ class _ExamScheduleScreenState extends State<ExamScheduleScreen> {
         }
 
         if (!authProvider.isLoggedIn) {
-          // You said "buildNotLoggedIn" was calling "const Scaffold...", so I will inline it here
-          // because I don't see the helper method in my small context window for overwrite.
-          // But I'll assume I should just use the skeleton or empty state.
-          return const Scaffold(
-            body: Center(child: Text("Vui lòng đăng nhập")),
-          );
+          return const Center(child: Text("Vui lòng đăng nhập"));
         }
 
         if (examProvider.isLoadingSemesters) {
-          return const Scaffold(body: SafeArea(child: ScheduleSkeleton()));
+          return const SafeArea(child: ScheduleSkeleton());
         }
 
         if (examProvider.errorMessage != null &&
@@ -107,13 +102,11 @@ class _ExamScheduleScreenState extends State<ExamScheduleScreen> {
         }
 
         if (examProvider.availableSemesters.isEmpty) {
-          return const Scaffold(
-            body: Center(child: Text("Không tìm thấy học kỳ nào")),
-          );
+          return const Center(child: Text("Không tìm thấy học kỳ nào"));
         }
 
         if (examProvider.isLoading) {
-          return const Scaffold(body: SafeArea(child: ScheduleSkeleton()));
+          return const SafeArea(child: ScheduleSkeleton());
         }
 
         if (examProvider.errorMessage != null &&
@@ -128,9 +121,9 @@ class _ExamScheduleScreenState extends State<ExamScheduleScreen> {
         }
 
         if (examProvider.registerPeriods.isEmpty && !examProvider.isLoading) {
-          return Scaffold(
-            appBar: AppBar(title: const Text('Lịch thi')),
-            body: _buildNoExams(),
+          return FScaffold(
+            header: const FHeader.nested(title: Text('Lịch thi')),
+            child: _buildNoExams(),
           );
         }
 
@@ -140,15 +133,13 @@ class _ExamScheduleScreenState extends State<ExamScheduleScreen> {
   }
 
   Widget _buildError(String message, VoidCallback onRetry) {
-    return Scaffold(
-      body: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(message),
-            ElevatedButton(onPressed: onRetry, child: const Text("Thử lại")),
-          ],
-        ),
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(message),
+          ElevatedButton(onPressed: onRetry, child: const Text("Thử lại")),
+        ],
       ),
     );
   }

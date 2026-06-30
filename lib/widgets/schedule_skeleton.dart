@@ -6,7 +6,7 @@ class ScheduleSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final baseColor = Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.5);
+    final baseColor = Theme.of(context).colorScheme.surfaceContainerHighest;
     final highlightColor = Theme.of(context).colorScheme.surface;
 
     return ListView.builder(
