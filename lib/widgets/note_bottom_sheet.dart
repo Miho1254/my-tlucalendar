@@ -39,6 +39,13 @@ class _NoteBottomSheetState extends State<NoteBottomSheet> {
     _loadNote();
   }
 
+  @override
+  void dispose() {
+    _textController.dispose();
+    _todoController.dispose();
+    super.dispose();
+  }
+
   Future<void> _loadNote() async {
     final noteProvider = Provider.of<NoteProvider>(context, listen: false);
     final note = noteProvider.getNoteFor(widget.referenceId);

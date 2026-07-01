@@ -45,6 +45,13 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
     super.initState();
     _selectedIndex = widget.initialIndex;
 
+    // Make status bar transparent — edge-to-edge Apple style
+    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+      statusBarColor: Colors.transparent,
+      statusBarIconBrightness: Brightness.light,
+      systemNavigationBarColor: Colors.transparent,
+    ));
+
     _controllers = List.generate(
       _tabs.length,
       (_) => AnimationController(
@@ -79,13 +86,6 @@ class _HomeShellState extends State<HomeShell> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    // Make status bar transparent — edge-to-edge Apple style
-    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.light,
-      systemNavigationBarColor: Colors.transparent,
-    ));
-
     return Scaffold(
       extendBody: true,          // content flows beneath the Liquid Glass bar
       backgroundColor: context.theme.scaffoldStyle.backgroundColor,
