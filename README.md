@@ -14,19 +14,19 @@
 
 <br />
 
-<a href="https://github.com/Miho1254/my-tlucalendar/releases/latest">📥 Tải APK mới nhất</a>
+<a href="https://github.com/Miho1254/my-tlucalendar/releases/latest">Tải APK mới nhất</a>
 &nbsp;&middot;&nbsp;
-<a href="#-tính-năng">✨ Tính năng</a>
+<a href="#tính-năng">Tính năng</a>
 &nbsp;&middot;&nbsp;
-<a href="#-cài-đặt">📦 Cài đặt</a>
+<a href="#cài-đặt">Cài đặt</a>
 &nbsp;&middot;&nbsp;
-<a href="#-đóng-góp">🤝 Đóng góp</a>
+<a href="#đóng-góp">Đóng góp</a>
 
 </div>
 
 ---
 
-## 📱 Preview
+## Preview
 
 <div align="center">
 
@@ -43,9 +43,9 @@
 
 ---
 
-## ✨ Tính năng
+## Tính năng
 
-### 📅 Lịch học và lịch thi
+### Lịch học và lịch thi
 
 - Đồng bộ thời khóa biểu và lịch thi theo học kỳ
 - Xem lịch học theo ngày hoặc theo tuần
@@ -53,21 +53,21 @@
 - Lọc lịch thi theo học kỳ, đợt học và lần thi
 - Ghi chú cá nhân cho từng buổi học hoặc môn thi
 
-### 📊 Phân tích học tập
+### Phân tích học tập
 
 - Xem điểm theo từng học kỳ
 - Theo dõi GPA và xu hướng học tập
 - Mô phỏng điểm cần đạt để hướng tới mục tiêu tốt nghiệp
 - Cố vấn học tập hiển thị các nhận xét thực dụng dựa trên dữ liệu điểm hiện có
 
-### 💾 Offline và cache
+### Offline và cache
 
 - Lưu dữ liệu lịch học, lịch thi và điểm số vào SQLite cục bộ
 - Mở app nhanh hơn nhờ ưu tiên dữ liệu cache trước khi đồng bộ lại
 - Pull-to-refresh để chủ động cập nhật dữ liệu mới
 - Trạng thái offline/refresh được tách rõ để tránh báo nhầm mất kết nối
 
-### 🎨 Giao diện và trải nghiệm
+### Giao diện và trải nghiệm
 
 - UI được refactor theo hệ component `forui`
 - Hỗ trợ Light Mode và Dark Mode
@@ -76,7 +76,7 @@
 
 ---
 
-## 🔄 Khác biệt so với bản gốc
+## Khác biệt so với bản gốc
 
 | Nhóm thay đổi | Nội dung |
 | --- | --- |
@@ -89,7 +89,7 @@
 
 ---
 
-## 📦 Cài đặt
+## Cài đặt
 
 ### Tải APK
 
@@ -97,7 +97,7 @@ APK release được đăng tại trang [GitHub Releases](https://github.com/Mih
 
 Ứng dụng cũng có thể kiểm tra bản mới từ GitHub Releases trong màn **Cài đặt**.
 
-### 🔧 Tự build
+### Tự build
 
 **Yêu cầu:**
 
@@ -118,7 +118,7 @@ flutter run
 flutter build apk --release --obfuscate --split-debug-info=build/app/outputs/symbols
 ```
 
-### ✍️ Signing release
+### Signing release
 
 APK phát hành cần được ký bằng keystore. GitHub Actions dùng các secret sau:
 
@@ -129,11 +129,11 @@ APK phát hành cần được ký bằng keystore. GitHub Actions dùng các se
 | `KEY_PASSWORD` | Mật khẩu key |
 | `STORE_PASSWORD` | Mật khẩu keystore |
 
-> ⚠️ Không dùng keystore tạm cho release công khai. Nếu đổi signing key, người dùng phải gỡ app trước khi cài bản mới.
+> Không dùng keystore tạm cho release công khai. Nếu đổi signing key, người dùng phải gỡ app trước khi cài bản mới.
 
 ---
 
-## 📁 Cấu trúc dự án
+## Cấu trúc dự án
 
 ```
 lib/
@@ -151,7 +151,7 @@ assets/          Preview images
 
 ---
 
-## 🔒 Quyền riêng tư
+## Quyền riêng tư
 
 Ứng dụng cần tài khoản sinh viên để đồng bộ dữ liệu từ hệ thống đào tạo. Token và thông tin đăng nhập phục vụ auto-login được lưu trên thiết bị bằng local storage/secure storage.
 
@@ -159,9 +159,9 @@ Dự án **không** vận hành server riêng để thu thập dữ liệu học
 
 ---
 
-## 🤝 Đóng góp
+## Đóng góp
 
-Issue và pull request đều được hoan nghênh!
+Issue và pull request đều được hoan nghênh.
 
 **Các đóng góp phù hợp:**
 
@@ -180,19 +180,19 @@ flutter analyze
 
 ---
 
-## 📄 License
+## License
 
 Repository hiện chưa có file `LICENSE`. Nếu bạn muốn dùng, phân phối lại hoặc đóng gói bản build riêng, hãy kiểm tra license của dự án gốc.
 
 ---
 
-## 🙏 Ghi nhận
+## Ghi nhận
 
 - Dự án gốc: [nekkochan0x0007/tlucalendar](https://gitlab.com/nekkochan0x0007/tlucalendar)
 - Bản fork/refactor: **Đặng Quang Hiển (Miho)**
 
 <div align="center">
 
-**Made with ❤️ for TLU Students**
+**Made with heart for TLU Students**
 
 </div>
