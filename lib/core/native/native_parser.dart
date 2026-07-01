@@ -1400,11 +1400,12 @@ class NativeParser {
       final result = resultPtr.ref;
 
       if (result.errorMessage != nullptr) {
+        final errorMsg = result.errorMessage.toDartString();
         debugPrint(
-          "Native Parse Error (Grades): ${result.errorMessage.toDartString()}",
+          "Native Parse Error (Grades): $errorMsg",
         );
         freeFunc(resultPtr);
-        return [];
+        throw Exception("Native Parse Error: $errorMsg");
       }
 
       final List<StudentMarkModel> list = [];

@@ -3,12 +3,15 @@ import 'package:provider/provider.dart';
 import 'package:forui/forui.dart';
 import 'package:tlucalendar/providers/auth_provider.dart';
 import 'package:tlucalendar/providers/schedule_provider.dart';
+import 'package:tlucalendar/providers/note_provider.dart';
 import 'package:tlucalendar/features/schedule/domain/entities/course.dart';
 import 'package:tlucalendar/widgets/empty_state_widget.dart';
 import 'package:tlucalendar/widgets/schedule_skeleton.dart';
 import 'package:intl/intl.dart';
 import 'package:tlucalendar/widgets/course_card_optimized.dart';
 import 'package:tlucalendar/widgets/course_detail_sheet.dart';
+import 'package:tlucalendar/utils/semester_parser.dart';
+import 'package:tlucalendar/widgets/weekly_timetable_widget.dart';
 
 bool _isSameDay(DateTime? a, DateTime? b) {
   if (a == null || b == null) return false;
@@ -25,6 +28,7 @@ class CalendarScreen extends StatefulWidget {
 class _CalendarScreenState extends State<CalendarScreen> {
   late DateTime _selectedDate;
   int _calendarKey = 0;
+  bool _isWeeklyView = false;
   static final DateFormat _headerDateFormat = DateFormat('EEEE, d MMMM, yyyy', 'vi');
 
   @override
@@ -38,6 +42,14 @@ class _CalendarScreenState extends State<CalendarScreen> {
       _selectedDate = DateTime.now();
       _calendarKey++; // Forces FCalendar to rebuild and snap to the new month
     });
+  }
+
+  String _getWeekRangeString(DateTime date) {
+    final int currentWeekday = date.weekday;
+    final DateTime monday = date.subtract(Duration(days: currentWeekday - 1));
+    final DateTime saturday = monday.add(const Duration(days: 5));
+    final DateFormat formatter = DateFormat('dd/MM');
+    return 'Tuần: ${formatter.format(monday)} - ${formatter.format(saturday)}';
   }
 
   List<Course> _getEventsForDay(DateTime day, ScheduleProvider scheduleProvider) {
@@ -92,6 +104,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
               await provider.loadSchedule(
                 auth.accessToken!,
                 provider.currentSemester!.id,
+                forceRefresh: true,
               );
             }
           },
@@ -101,9 +114,18 @@ class _CalendarScreenState extends State<CalendarScreen> {
               SliverToBoxAdapter(child: _buildHeader(context)),
               SliverToBoxAdapter(child: _buildSurvivalBar(context)),
               SliverToBoxAdapter(child: _buildOfflineIndicator(context)),
-              SliverToBoxAdapter(child: _buildCalendar(context)),
-              const SliverToBoxAdapter(child: SizedBox(height: 16)),
-              _buildCourseSliverList(context),
+              if (!_isWeeklyView) ...[
+                SliverToBoxAdapter(child: _buildCalendar(context)),
+                const SliverToBoxAdapter(child: SizedBox(height: 16)),
+                _buildCourseSliverList(context),
+              ] else ...[
+                SliverToBoxAdapter(
+                  child: WeeklyTimetableWidget(
+                    selectedDate: _selectedDate,
+                  ),
+                ),
+                const SliverToBoxAdapter(child: SizedBox(height: 24)),
+              ],
             ],
           ),
         ),
@@ -135,16 +157,14 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 children: [
                   Text(
                     isDone ? "🎉 Đã sống sót qua tuần này!" : "Tiến độ sống sót tuần này",
-                    style: TextStyle(
-                      fontSize: 12,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       fontWeight: FontWeight.bold,
                       color: isDone ? theme.colorScheme.error : theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
                   Text(
                     "$percent%",
-                    style: TextStyle(
-                      fontSize: 12,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       fontWeight: FontWeight.bold,
                       color: isDone ? theme.colorScheme.error : theme.colorScheme.primary,
                     ),
@@ -198,6 +218,21 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     ),
                     Row(
                       children: [
+                        FButton.icon(
+                          onPress: () {
+                            setState(() {
+                              _isWeeklyView = !_isWeeklyView;
+                            });
+                          },
+                          variant: FButtonVariant.ghost,
+                          child: Icon(
+                            _isWeeklyView
+                                ? Icons.calendar_view_month
+                                : Icons.calendar_view_week,
+                            size: 20,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
                         Opacity(
                           opacity: isToday ? 0.0 : 1.0,
                           child: IgnorePointer(
@@ -209,19 +244,53 @@ class _CalendarScreenState extends State<CalendarScreen> {
                             ),
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 4),
                         _buildSemesterSelector(context),
                       ],
                     ),
                   ],
                 ),
                 const SizedBox(height: 4),
-                Text(
-                  _headerDateFormat.format(_selectedDate),
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
-                ),
+                _isWeeklyView
+                    ? Row(
+                        children: [
+                          FButton.icon(
+                            onPress: () {
+                              setState(() {
+                                _selectedDate =
+                                    _selectedDate.subtract(const Duration(days: 7));
+                              });
+                            },
+                            variant: FButtonVariant.ghost,
+                            child: const Icon(Icons.chevron_left, size: 20),
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            _getWeekRangeString(_selectedDate),
+                            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                ),
+                          ),
+                          const SizedBox(width: 4),
+                          FButton.icon(
+                            onPress: () {
+                              setState(() {
+                                _selectedDate =
+                                    _selectedDate.add(const Duration(days: 7));
+                              });
+                            },
+                            variant: FButtonVariant.ghost,
+                            child: const Icon(Icons.chevron_right, size: 20),
+                          ),
+                        ],
+                      )
+                    : Text(
+                        _headerDateFormat.format(_selectedDate),
+                        style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                      ),
               ],
             ),
           ),
@@ -246,8 +315,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
           variant: FButtonVariant.secondary,
           prefix: const Icon(Icons.calendar_today, size: 16),
           child: Text(
-            selectedSemester?.semesterName ?? 'Học kỳ',
-            style: TextStyle(
+            selectedSemester?.semesterName.toShortReadableSemester ?? 'Học kỳ',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
               fontWeight: FontWeight.bold,
               color: Theme.of(context).colorScheme.onSurface,
             ),
@@ -304,8 +373,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                             padding: const EdgeInsets.only(left: 8.0, bottom: 8.0),
                             child: Text(
                               year.name,
-                              style: TextStyle(
-                                fontSize: 12,
+                              style: theme.textTheme.bodySmall?.copyWith(
                                 fontWeight: FontWeight.bold,
                                 color: theme.colorScheme.onSurfaceVariant,
                               ),
@@ -315,7 +383,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                             children: year.semesters.reversed.map<FTile>((semester) {
                               final isSelected = semester.id == scheduleProvider.selectedSemester?.id;
                               return FTile(
-                                title: Text(semester.semesterName),
+                                title: Text(semester.semesterName.toReadableSemester),
                                 onPress: () {
                                   if (authProvider.accessToken != null) {
                                     scheduleProvider.selectSemester(
@@ -403,6 +471,18 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   dayBuilder: (context, styles, localizations, date, variants) {
                     final events = _getEventsForDay(date, provider);
                     final hasExam = events.any((e) => e.courseName.toLowerCase().contains("thi ") || e.status.toLowerCase().contains("exam"));
+                    final noteProvider = context.watch<NoteProvider>();
+                    final hasNote = events.any((e) {
+                      final sHourObj = provider.courseHours.where((h) => h.indexNumber == e.startCourseHour).firstOrNull;
+                      final classDate = DateTime(
+                        date.year,
+                        date.month,
+                        date.day,
+                        sHourObj != null ? int.parse(sHourObj.startString.split(':')[0]) : 0,
+                        sHourObj != null ? int.parse(sHourObj.startString.split(':')[1]) : 0,
+                      );
+                      return noteProvider.hasNoteFor('course_${e.id}_${classDate.millisecondsSinceEpoch}');
+                    });
                     
                     final isToday = variants.contains(FCalendarDayVariant.today);
                     final Set<FCalendarDayVariant> modifiedVariants = Set.from(variants);
@@ -427,7 +507,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                       );
                     }
 
-                    if (events.isEmpty) {
+                    if (events.isEmpty && !hasNote) {
                       return dayWidget;
                     }
 
@@ -435,17 +515,31 @@ class _CalendarScreenState extends State<CalendarScreen> {
                       alignment: Alignment.center,
                       children: [
                         dayWidget,
-                        Positioned(
-                          bottom: 6,
-                          child: Container(
-                            width: 6,
-                            height: 6,
-                            decoration: BoxDecoration(
-                              color: hasExam ? theme.colorScheme.error : theme.colorScheme.primary,
-                              shape: BoxShape.circle,
+                        if (events.isNotEmpty)
+                          Positioned(
+                            bottom: 6,
+                            child: Container(
+                              width: 6,
+                              height: 6,
+                              decoration: BoxDecoration(
+                                color: hasExam ? theme.colorScheme.error : theme.colorScheme.primary,
+                                shape: BoxShape.circle,
+                              ),
                             ),
                           ),
-                        ),
+                        if (hasNote)
+                          Positioned(
+                            top: 8,
+                            right: 8,
+                            child: Container(
+                              width: 6,
+                              height: 6,
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.error,
+                                shape: BoxShape.circle,
+                              ),
+                            ),
+                          ),
                       ],
                     );
                   },
@@ -521,9 +615,19 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 }
               }
 
+              // Extract classDate logic out of builder so we can pass it to both
+              final classDate = DateTime(
+                _selectedDate.year,
+                _selectedDate.month,
+                _selectedDate.day,
+                sHourObj != null ? int.parse(sHourObj.startString.split(':')[0]) : 0,
+                sHourObj != null ? int.parse(sHourObj.startString.split(':')[1]) : 0,
+              );
+
               return CourseCardOptimized(
                 course: course,
                 timeRange: timeRange,
+                classDate: classDate,
                 isPast: isPast,
                 isCurrent: isCurrent,
                 onTap: () {
@@ -533,15 +637,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     isScrollControlled: true,
                     backgroundColor: Colors.transparent,
                     builder: (context) {
-                      // Pass exact date of class
-                      final classDate = DateTime(
-                        _selectedDate.year,
-                        _selectedDate.month,
-                        _selectedDate.day,
-                        sHourObj != null ? int.parse(sHourObj.startString.split(':')[0]) : 0,
-                        sHourObj != null ? int.parse(sHourObj.startString.split(':')[1]) : 0,
-                      );
-
                       return CourseDetailSheet(
                         course: course,
                         classDate: classDate,

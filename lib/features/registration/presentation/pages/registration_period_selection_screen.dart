@@ -6,6 +6,7 @@ import 'package:tlucalendar/features/schedule/domain/entities/semester.dart';
 import 'package:tlucalendar/providers/schedule_provider.dart';
 import 'package:tlucalendar/features/registration/presentation/pages/course_registration_screen.dart';
 import 'package:intl/intl.dart';
+import 'package:tlucalendar/utils/semester_parser.dart';
 
 class RegistrationPeriodSelectionScreen extends StatefulWidget {
   const RegistrationPeriodSelectionScreen({super.key});
@@ -191,7 +192,7 @@ class _RegistrationPeriodSelectionScreenState
             shape: Border.all(color: Colors.transparent),
             title: Text(
               year.name, // e.g., "2025_2026" or "Năm học 2025-2026"
-              style: const TextStyle(fontWeight: FontWeight.bold),
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
             subtitle: Text('${yearPeriods.length} đợt đăng ký'),
             children: yearPeriods.map((item) {
@@ -254,7 +255,7 @@ class _RegistrationPeriodSelectionScreenState
         contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
         title: Text(
           period.name,
-          style: const TextStyle(fontWeight: FontWeight.w600),
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(fontWeight: FontWeight.w600),
         ),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -268,7 +269,7 @@ class _RegistrationPeriodSelectionScreenState
                   color: Theme.of(context).hintColor,
                 ),
                 const SizedBox(width: 4),
-                Text('Học kỳ: ${semester.semesterName}'),
+                Text(semester.semesterName.toReadableSemester),
               ],
             ),
             const SizedBox(height: 2),
@@ -286,8 +287,8 @@ class _RegistrationPeriodSelectionScreenState
           ],
         ),
         trailing: isActive
-            ? const Chip(
-                label: Text('Đang mở', style: TextStyle(fontSize: 10)),
+            ? Chip(
+                label: Text('Đang mở', style: Theme.of(context).textTheme.labelSmall),
                 padding: EdgeInsets.zero,
                 visualDensity: VisualDensity.compact,
               )

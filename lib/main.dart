@@ -14,6 +14,7 @@ import 'package:tlucalendar/providers/auth_provider.dart';
 import 'package:tlucalendar/providers/schedule_provider.dart';
 import 'package:tlucalendar/providers/exam_provider.dart';
 import 'package:tlucalendar/providers/settings_provider.dart';
+import 'package:tlucalendar/providers/note_provider.dart';
 import 'package:tlucalendar/providers/registration_provider.dart';
 import 'package:tlucalendar/providers/grade_provider.dart';
 
@@ -126,11 +127,17 @@ void main() async {
           ChangeNotifierProvider(
             create: (_) => di.sl<SettingsProvider>()..init(),
           ),
-          ChangeNotifierProvider(create: (_) => di.sl<GradeProvider>()),
+          ChangeNotifierProxyProvider<AuthProvider, GradeProvider>(
+            create: (_) => di.sl<GradeProvider>(),
+            update: (_, auth, grade) => grade!..setAuthProvider(auth),
+          ),
           ChangeNotifierProxyProvider<AuthProvider, RegistrationProvider>(
             create: (_) => di.sl<RegistrationProvider>(),
             update: (_, auth, registration) =>
                 registration!..setAuthProvider(auth),
+          ),
+          ChangeNotifierProvider(
+            create: (_) => di.sl<NoteProvider>()..loadNotes(),
           ),
         ],
         child: const MyApp(),

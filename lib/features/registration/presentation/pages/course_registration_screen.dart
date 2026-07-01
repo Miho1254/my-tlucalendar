@@ -133,11 +133,11 @@ class _CourseRegistrationScreenState extends State<CourseRegistrationScreen> {
   Widget _buildSearchBar() {
     return TextField(
       controller: _searchController,
-      style: const TextStyle(color: Colors.white),
+      style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white),
       autofocus: true,
-      decoration: const InputDecoration(
+      decoration: InputDecoration(
         hintText: 'Tìm kiếm môn học...',
-        hintStyle: TextStyle(color: Colors.white70),
+        hintStyle: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white70),
         border: InputBorder.none,
       ),
     );
@@ -166,28 +166,29 @@ class _SubjectItemState extends State<_SubjectItem> {
           color: Theme.of(context).colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
           borderRadius: BorderRadius.circular(16),
         ),
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        children: [
-          ListTile(
-            title: Text(
-              widget.subject.subjectName,
-              style: const TextStyle(fontWeight: FontWeight.bold),
+        clipBehavior: Clip.antiAlias,
+        child: Column(
+          children: [
+            ListTile(
+              title: Text(
+                widget.subject.subjectName,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
+              ),
+              subtitle: Text('Số tín chỉ: ${widget.subject.numberOfCredit}'),
+              trailing: Icon(_isExpanded ? FLucideIcons.chevronUp : FLucideIcons.chevronDown),
+              onTap: () {
+                setState(() {
+                  _isExpanded = !_isExpanded;
+                });
+              },
             ),
-            subtitle: Text('Số tín chỉ: ${widget.subject.numberOfCredit}'),
-            trailing: FIcon(_isExpanded ? FLucideIcons.chevronUp : FLucideIcons.chevronDown),
-            onTap: () {
-              setState(() {
-                _isExpanded = !_isExpanded;
-              });
-            },
-          ),
-          if (_isExpanded)
-            ...widget.subject.courseSubjects.map(
-              (course) =>
-                  _CourseSubjectItem(course: course, periodId: widget.periodId),
-            ),
-        ],
+            if (_isExpanded)
+              ...widget.subject.courseSubjects.map(
+                (course) =>
+                    _CourseSubjectItem(course: course, periodId: widget.periodId),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -228,7 +229,7 @@ class _CourseSubjectItemState extends State<_CourseSubjectItem> {
       ),
       padding: const EdgeInsets.all(12.0),
       child: DefaultTextStyle(
-        style: TextStyle(color: textColor, fontSize: 13),
+        style: Theme.of(context).textTheme.bodySmall!.copyWith(color: textColor),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -240,27 +241,26 @@ class _CourseSubjectItemState extends State<_CourseSubjectItem> {
                     children: [
                       Text(
                         'Mã lớp: ${widget.course.displayCode} (${widget.course.code})',
-                        style: TextStyle(
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
                           fontWeight: FontWeight.bold,
-                          fontSize: 14,
                           color: textColor,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         'GV: ${widget.course.timetables.isNotEmpty ? widget.course.timetables.first.teacherName : "N/A"}',
-                        style: TextStyle(color: textColor),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(color: textColor),
                       ),
                       Text(
                         'Sĩ số: ${widget.course.numberStudent}/${widget.course.maxStudent}',
-                        style: TextStyle(color: textColor),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(color: textColor),
                       ),
                       const SizedBox(height: 2),
                       Row(
                         children: [
                           Text(
                             'Trạng thái: ${widget.course.status}',
-                            style: TextStyle(
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
                               fontStyle: FontStyle.italic,
                               color: textColor,
                             ),
@@ -272,7 +272,7 @@ class _CourseSubjectItemState extends State<_CourseSubjectItem> {
                                 message: "Trùng tiết!",
                                 child: Text(
                                   "Trùng tiết!",
-                                  style: TextStyle(
+                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                     color: Colors.red,
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -286,7 +286,7 @@ class _CourseSubjectItemState extends State<_CourseSubjectItem> {
                                 message: "Lớp đầy!",
                                 child: Text(
                                   "Lớp đầy!",
-                                  style: TextStyle(
+                                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
                                     color: Colors.deepOrange,
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -362,8 +362,7 @@ class _CourseSubjectItemState extends State<_CourseSubjectItem> {
                             "T${t.dayOfWeek} (Tiết ${t.startHour}-${t.endHour}) @ ${t.roomName}",
                       )
                       .join('\n'),
-                  style: TextStyle(
-                    fontSize: 12,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
                     fontWeight: FontWeight.w600,
                     color: Theme.of(context).colorScheme.primary,
                   ),

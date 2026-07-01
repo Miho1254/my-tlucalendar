@@ -202,7 +202,7 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
           const SizedBox(height: 8),
           Text(
             'Sử dụng tài khoản Quản lý đào tạo (CMC) để đồng bộ lịch học & lịch thi',
-            style: TextStyle(color: colorScheme.onSurfaceVariant),
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 48),
@@ -222,7 +222,7 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                   Expanded(
                     child: Text(
                       _errorMessage!,
-                      style: TextStyle(color: colorScheme.error, fontWeight: FontWeight.w500),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: colorScheme.error, fontWeight: FontWeight.w500),
                     ),
                   ),
                 ],
@@ -267,7 +267,7 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                     const SizedBox(height: 8),
                     Text(
                       authProvider.loginProgress.isEmpty ? 'Đang kết nối...' : authProvider.loginProgress,
-                      style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 12),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
                     ),
                   ],
                 );
@@ -302,7 +302,7 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
           const SizedBox(height: 8),
           Text(
             'Giao diện tối giúp tiết kiệm pin và thân thiện với mắt hơn vào ban đêm.',
-            style: TextStyle(color: Theme.of(context).colorScheme.onSurfaceVariant),
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 48),
@@ -367,7 +367,7 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
           const SizedBox(height: 8),
           Text(
             'Nhận thông báo nhắc lịch học, lịch thi hằng ngày để không bỏ lỡ buổi học nào.',
-            style: TextStyle(color: colorScheme.onSurfaceVariant),
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 48),
@@ -404,7 +404,7 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                     ),
                     child: Text(
                       settingsProvider.dailyNotificationTime.format(context),
-                      style: TextStyle(
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                         color: colorScheme.primary,
                       ),

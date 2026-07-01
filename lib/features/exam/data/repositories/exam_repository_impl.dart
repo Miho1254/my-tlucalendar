@@ -95,4 +95,32 @@ class ExamRepositoryImpl implements ExamRepository {
       return Left(ServerFailure(e.toString()));
     }
   }
+
+  @override
+  Future<Either<Failure, List<ExamSchedule>>> getCachedExamSchedules(int semesterId) async {
+    try {
+      final cached = await localDataSource.getCachedExamSchedules(semesterId);
+      return Right(cached);
+    } catch (e) {
+      return Left(CacheFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<ExamRoom>>> getCachedExamRooms({
+    required int semesterId,
+    required int scheduleId,
+    required int round,
+  }) async {
+    try {
+      final cached = await localDataSource.getCachedExamRooms(
+        semesterId: semesterId,
+        scheduleId: scheduleId,
+        round: round,
+      );
+      return Right(cached);
+    } catch (e) {
+      return Left(CacheFailure(e.toString()));
+    }
+  }
 }

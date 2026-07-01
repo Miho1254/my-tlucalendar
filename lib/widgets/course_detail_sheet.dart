@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:forui/forui.dart';
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
 import 'package:tlucalendar/features/schedule/domain/entities/course.dart';
 import 'package:tlucalendar/services/notification_service.dart';
+import 'package:tlucalendar/providers/note_provider.dart';
+import 'package:tlucalendar/features/notes/domain/models/note_model.dart';
 
 class CourseDetailSheet extends StatefulWidget {
   final Course course;
@@ -32,28 +34,43 @@ class _CourseDetailSheetState extends State<CourseDetailSheet> {
     _loadNote();
   }
 
-  String get _storageKey => 'course_note_${widget.course.id}_${widget.classDate.millisecondsSinceEpoch}';
-  String get _modeKey => 'course_note_mode_${widget.course.id}_${widget.classDate.millisecondsSinceEpoch}';
-  String get _doneKey => 'course_note_done_${widget.course.id}_${widget.classDate.millisecondsSinceEpoch}';
+  String get _referenceId => 'course_${widget.course.id}_${widget.classDate.millisecondsSinceEpoch}';
 
   Future<void> _loadNote() async {
-    final prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _noteController.text = prefs.getString(_storageKey) ?? '';
-      _isTodoMode = prefs.getBool(_modeKey) ?? false;
-      _isDone = prefs.getBool(_doneKey) ?? false;
-      _isLoading = false;
-    });
+    final noteProvider = Provider.of<NoteProvider>(context, listen: false);
+    final note = noteProvider.getNoteFor(_referenceId);
+    if (note != null) {
+      setState(() {
+        _isTodoMode = note.type == NoteType.todo;
+        if (_isTodoMode && note.items != null && note.items!.isNotEmpty) {
+          final item = note.items!.first;
+          _noteController.text = item.text;
+          _isDone = item.isCompleted;
+        } else {
+          _noteController.text = note.content ?? '';
+          _isDone = false;
+        }
+        _isLoading = false;
+      });
+    } else {
+      setState(() {
+        _noteController.text = '';
+        _isTodoMode = false;
+        _isDone = false;
+        _isLoading = false;
+      });
+    }
   }
 
   Future<void> _saveNote() async {
-    final prefs = await SharedPreferences.getInstance();
+    final noteProvider = Provider.of<NoteProvider>(context, listen: false);
     final noteText = _noteController.text.trim();
     
     if (noteText.isEmpty) {
-      await prefs.remove(_storageKey);
-      await prefs.remove(_modeKey);
-      await prefs.remove(_doneKey);
+      final existingNote = noteProvider.getNoteFor(_referenceId);
+      if (existingNote != null) {
+        await noteProvider.deleteNote(existingNote.id);
+      }
       await NotificationService().cancelCourseNoteNotification(widget.course, widget.classDate);
       if (mounted) {
         FToaster.of(context).show(
@@ -66,9 +83,20 @@ class _CourseDetailSheetState extends State<CourseDetailSheet> {
       return;
     }
 
-    await prefs.setString(_storageKey, noteText);
-    await prefs.setBool(_modeKey, _isTodoMode);
-    await prefs.setBool(_doneKey, _isDone);
+    final existingNote = noteProvider.getNoteFor(_referenceId);
+    final id = existingNote?.id ?? DateTime.now().millisecondsSinceEpoch.toString();
+
+    final note = NoteModel(
+      id: id,
+      referenceId: _referenceId,
+      title: 'Ghi chú: ${widget.course.courseName}',
+      type: _isTodoMode ? NoteType.todo : NoteType.plainText,
+      content: _isTodoMode ? null : noteText,
+      items: _isTodoMode ? [NoteItem(id: '1', text: noteText, isCompleted: _isDone)] : null,
+      createdAt: existingNote?.createdAt ?? DateTime.now(),
+    );
+
+    await noteProvider.saveNote(note);
 
     // Schedule notification 24h before if it's not done
     if (!_isDone) {
@@ -131,7 +159,7 @@ class _CourseDetailSheetState extends State<CourseDetailSheet> {
           
           Text(
             widget.course.courseName,
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 8),
           
@@ -160,13 +188,13 @@ class _CourseDetailSheetState extends State<CourseDetailSheet> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              const Text(
+              Text(
                 'Ghi chú cá nhân',
-                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
               ),
               Row(
                 children: [
-                  const Text('Chế độ Todo', style: TextStyle(fontSize: 13)),
+                  Text('Chế độ Todo', style: Theme.of(context).textTheme.bodySmall),
                   const SizedBox(width: 8),
                   FSwitch(
                     value: _isTodoMode,
@@ -199,7 +227,7 @@ class _CourseDetailSheetState extends State<CourseDetailSheet> {
                 Expanded(
                   child: TextField(
                     controller: _noteController,
-                    style: TextStyle(
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       decoration: _isDone ? TextDecoration.lineThrough : null,
                       color: _isDone ? Colors.grey : null,
                     ),

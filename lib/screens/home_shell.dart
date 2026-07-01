@@ -217,10 +217,7 @@ class _TabItem extends StatelessWidget {
                 const SizedBox(height: 3),
                 AnimatedDefaultTextStyle(
                   duration: const Duration(milliseconds: 200),
-                  style: TextStyle(
-                    fontFamily: 'Inter',
-                    // Tab Label: 11pt Regular (Apple HIG)
-                    fontSize: 11,
+                  style: Theme.of(context).textTheme.labelSmall!.copyWith(
                     fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
                     color: color,
                     letterSpacing: -0.1,

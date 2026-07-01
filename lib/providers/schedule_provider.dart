@@ -6,6 +6,7 @@ import 'package:tlucalendar/features/schedule/domain/entities/course.dart';
 import 'package:tlucalendar/features/schedule/domain/entities/course_hour.dart';
 import 'package:tlucalendar/features/schedule/domain/entities/school_year.dart';
 import 'package:tlucalendar/features/schedule/domain/entities/semester.dart';
+import 'package:tlucalendar/features/schedule/domain/repositories/schedule_repository.dart';
 import 'package:tlucalendar/features/schedule/domain/usecases/get_course_hours_usecase.dart';
 import 'package:tlucalendar/features/schedule/domain/usecases/get_current_semester_usecase.dart';
 import 'package:tlucalendar/features/schedule/domain/usecases/get_schedule_usecase.dart';
@@ -20,6 +21,7 @@ class ScheduleProvider extends ChangeNotifier {
   final GetSchoolYearsUseCase getSchoolYearsUseCase;
   final GetCurrentSemesterUseCase getCurrentSemesterUseCase;
   final GetCourseHoursUseCase getCourseHoursUseCase;
+  final ScheduleRepository scheduleRepository;
 
   AuthProvider? _authProvider;
 
@@ -28,6 +30,7 @@ class ScheduleProvider extends ChangeNotifier {
     required this.getSchoolYearsUseCase,
     required this.getCurrentSemesterUseCase,
     required this.getCourseHoursUseCase,
+    required this.scheduleRepository,
   });
 
   void setAuthProvider(AuthProvider auth) {
@@ -56,6 +59,19 @@ class ScheduleProvider extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   bool get isOfflineMode => _isOfflineMode;
   bool get isReconnecting => _isReconnecting;
+
+  // Clear data on logout
+  void clearData() {
+    _schoolYears = [];
+    _courses = [];
+    _courseHours = [];
+    _currentSemester = null;
+    _isOfflineMode = false;
+    _isReconnecting = false;
+    _isLoading = false;
+    _errorMessage = null;
+    notifyListeners();
+  }
 
   // Init Data
   Future<void> init(String accessToken) async {
@@ -200,15 +216,15 @@ class ScheduleProvider extends ChangeNotifier {
     _schoolYears.sort((a, b) => a.startDate.compareTo(b.startDate));
 
     // 2. Determine Current Semester
-    Semester? foundCurrent;
+    List<Semester> currents = [];
     for (var y in years) {
       for (var s in y.semesters) {
-        if (s.isCurrent) {
-          foundCurrent = s;
-          break;
-        }
+        if (s.isCurrent) currents.add(s);
       }
     }
+    
+    Semester? foundCurrent = currents.where((s) => s.semesterName.toLowerCase().contains('học kỳ')).firstOrNull;
+    foundCurrent ??= currents.firstOrNull;
 
     if (foundCurrent == null &&
         years.isNotEmpty &&
@@ -236,10 +252,31 @@ class ScheduleProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> loadSchedule(String accessToken, int semesterId) async {
-    _isLoading = true;
+  Future<void> loadSchedule(String accessToken, int semesterId, {bool forceRefresh = false}) async {
     _errorMessage = null;
-    notifyListeners();
+
+    if (!forceRefresh) {
+      // Step 1: Load cache immediately without spinning
+      final cacheResult = await scheduleRepository.getCachedCourses(semesterId);
+      cacheResult.fold(
+        (_) => null,
+        (cachedCourses) {
+          if (cachedCourses.isNotEmpty) {
+            _isOfflineMode = true;
+            _courses = cachedCourses;
+            _scheduleNotifications();
+            notifyListeners();
+          }
+        },
+      );
+    }
+
+    // Step 2: Show loading spinner if memory is empty OR forceRefresh is true
+    final shouldShowSpinner = _courses.isEmpty || forceRefresh;
+    if (shouldShowSpinner) {
+      _isLoading = true;
+      notifyListeners();
+    }
 
     String currentToken = accessToken;
 
@@ -268,7 +305,9 @@ class ScheduleProvider extends ChangeNotifier {
           _courses = f.data;
           _scheduleNotifications();
         } else {
-          _errorMessage = f.message;
+          if (shouldShowSpinner) {
+            _errorMessage = f.message;
+          }
         }
       },
       (c) {

@@ -11,6 +11,7 @@ import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:forui/forui.dart';
 import 'package:forui_assets/forui_assets.dart';
 import 'package:tlucalendar/features/grades/presentation/pages/grade_screen.dart';
+import 'package:tlucalendar/features/grades/presentation/pages/analytics_screen.dart';
 
 class TodayScreen extends StatefulWidget {
   const TodayScreen({super.key});
@@ -147,20 +148,17 @@ class _TodayScreenState extends State<TodayScreen> {
                         children: [
                           Text(
                             '${_getGreeting()},\n$userName! 👋',
-                            style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                                  fontWeight: FontWeight.w800,
+                            style: Theme.of(context).textTheme.displayLarge?.copyWith(
                                   color: Theme.of(context).colorScheme.onSurface,
-                                  height: 1.15,
                                 ),
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 8),
                           Text(
                             todaySchedules.isEmpty
                                 ? 'Hôm nay bạn được nghỉ ngơi thoải mái!'
                                 : 'Hôm nay chiến ${todaySchedules.length} môn nhé.',
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                                   color: Theme.of(context).colorScheme.onSurfaceVariant,
-                                  fontWeight: FontWeight.w500,
                                 ),
                           ),
                         ],
@@ -219,6 +217,17 @@ class _TodayScreenState extends State<TodayScreen> {
                                   Navigator.push(
                                     context,
                                     MaterialPageRoute(builder: (_) => const GradeScreen()),
+                                  );
+                                },
+                              ),
+                              FTile(
+                                prefix: Icon(FLucideIcons.pieChart, color: Theme.of(context).colorScheme.primary),
+                                title: const Text('Phân tích học tập'),
+                                suffix: const Icon(FLucideIcons.chevronRight, size: 20),
+                                onPress: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(builder: (_) => const AnalyticsScreen()),
                                   );
                                 },
                               ),
@@ -295,8 +304,13 @@ class _TodayScreenState extends State<TodayScreen> {
                       ),
                     ),
                     
-                  // Extra bottom padding for Liquid Glass tab bar (≈ 80pt)
-                  const SliverToBoxAdapter(child: SizedBox(height: 120)),
+                  // Add bottom safe area padding (automatically accounts for the Liquid Glass tab bar)
+                  // plus a small clearance to prevent the last item from touching the tab bar.
+                  const SliverSafeArea(
+                    top: false,
+                    bottom: true,
+                    sliver: SliverToBoxAdapter(child: SizedBox(height: 16)),
+                  ),
                 ],
               ),
             ),

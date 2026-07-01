@@ -19,4 +19,12 @@ abstract class ExamRepository {
     required String accessToken,
     String? rawToken,
   });
+
+  Future<Either<Failure, List<ExamSchedule>>> getCachedExamSchedules(int semesterId);
+
+  Future<Either<Failure, List<ExamRoom>>> getCachedExamRooms({
+    required int semesterId,
+    required int scheduleId,
+    required int round,
+  });
 }

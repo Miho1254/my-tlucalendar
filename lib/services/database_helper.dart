@@ -10,6 +10,7 @@ import '../features/schedule/data/models/course_model.dart';
 import '../features/schedule/data/models/school_year_model.dart';
 import '../features/schedule/data/models/semester_model.dart';
 import '../features/schedule/domain/entities/course_hour.dart';
+import '../features/grades/domain/entities/student_mark.dart';
 
 // Legacy compatibility for RegisterPeriod/Exam
 import '../features/exam/data/models/exam_dtos.dart' as Legacy;
@@ -54,7 +55,7 @@ class DatabaseHelper {
 
     final currentVersionRow = db.select('PRAGMA user_version;');
     final currentVersion = currentVersionRow.first['user_version'] as int;
-    const targetVersion = 5;
+    const targetVersion = 6;
 
     if (currentVersion == 0) {
       _createDB(db, targetVersion);
@@ -95,6 +96,7 @@ class DatabaseHelper {
     db.execute('DROP TABLE IF EXISTS exam_rooms');
     db.execute('DROP TABLE IF EXISTS cache_progress');
     db.execute('DROP TABLE IF EXISTS exam_round_cache_metadata');
+    db.execute('DROP TABLE IF EXISTS student_marks');
 
     _createDB(db, newVersion);
   }
@@ -245,6 +247,27 @@ class DatabaseHelper {
         roomCount INTEGER NOT NULL DEFAULT 0,
         lastCached INTEGER NOT NULL,
         UNIQUE(semesterId, registerPeriodId, examRound)
+      )
+    ''');
+
+    db.execute('''
+      CREATE TABLE student_marks (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        subjectCode TEXT NOT NULL,
+        subjectName TEXT NOT NULL,
+        numberOfCredit INTEGER NOT NULL,
+        mark REAL NOT NULL,
+        markQT REAL NOT NULL,
+        markTHI REAL NOT NULL,
+        charMark TEXT NOT NULL,
+        studyTime INTEGER NOT NULL,
+        examRound INTEGER NOT NULL,
+        isCalculateMark INTEGER NOT NULL,
+        semesterCode TEXT NOT NULL,
+        semesterName TEXT NOT NULL,
+        semesterId INTEGER NOT NULL,
+        lastUpdated INTEGER NOT NULL,
+        UNIQUE(subjectCode, semesterId, studyTime, examRound)
       )
     ''');
   }
@@ -528,6 +551,67 @@ class DatabaseHelper {
         .toList();
   }
 
+  // --- STUDENT MARKS (GRADES) ---
+  Future<void> saveStudentMarks(List<StudentMark> marks) async {
+    final db = await database;
+    db.execute('DELETE FROM student_marks');
+    db.execute('BEGIN TRANSACTION');
+    try {
+      final stmt = db.prepare('''
+        INSERT OR REPLACE INTO student_marks 
+        (subjectCode, subjectName, numberOfCredit, mark, markQT, markTHI, charMark, studyTime, examRound, isCalculateMark, semesterCode, semesterName, semesterId, lastUpdated)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      ''');
+
+      final now = DateTime.now().millisecondsSinceEpoch;
+      for (var m in marks) {
+        stmt.execute([
+          m.subjectCode,
+          m.subjectName,
+          m.numberOfCredit,
+          m.mark,
+          m.markQT,
+          m.markTHI,
+          m.charMark,
+          m.studyTime,
+          m.examRound,
+          m.isCalculateMark ? 1 : 0,
+          m.semesterCode,
+          m.semesterName,
+          m.semesterId,
+          now,
+        ]);
+      }
+      stmt.dispose();
+      db.execute('COMMIT');
+    } catch (_) {
+      db.execute('ROLLBACK');
+      rethrow;
+    }
+  }
+
+  Future<List<StudentMark>> getStudentMarks() async {
+    final db = await database;
+    final results = db.select('SELECT * FROM student_marks');
+    return results.map((row) {
+      return StudentMark(
+        subjectCode: row['subjectCode'] as String,
+        subjectName: row['subjectName'] as String,
+        numberOfCredit: row['numberOfCredit'] as int,
+        mark: row['mark'] as double,
+        markQT: row['markQT'] as double,
+        markTHI: row['markTHI'] as double,
+        charMark: row['charMark'] as String,
+        studyTime: row['studyTime'] as int,
+        examRound: row['examRound'] as int,
+        isCalculateMark: (row['isCalculateMark'] as int) == 1,
+        semesterCode: row['semesterCode'] as String,
+        semesterName: row['semesterName'] as String,
+        semesterId: row['semesterId'] as int,
+      );
+    }).toList();
+  }
+
   // --- CLEAR DATA ---
   Future<void> clearAllData() async {
     final db = await database;
@@ -538,6 +622,8 @@ class DatabaseHelper {
     db.execute('DELETE FROM course_hours');
     db.execute('DELETE FROM register_periods');
     db.execute('DELETE FROM exam_rooms');
+    db.execute('DELETE FROM exam_round_cache_metadata');
+    db.execute('DELETE FROM student_marks');
   }
 
   // Save register periods

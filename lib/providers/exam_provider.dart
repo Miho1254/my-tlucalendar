@@ -12,6 +12,7 @@ import 'package:tlucalendar/features/exam/domain/entities/exam_schedule.dart';
 import 'package:tlucalendar/features/exam/domain/entities/exam_room.dart';
 import 'package:intl/intl.dart';
 import 'package:tlucalendar/services/auto_refresh_service.dart';
+import 'package:tlucalendar/features/exam/domain/repositories/exam_repository.dart';
 import 'package:flutter/foundation.dart'; // For ChangeNotifier
 import 'package:tlucalendar/providers/auth_provider.dart';
 
@@ -22,6 +23,7 @@ class ExamProvider with ChangeNotifier {
   final GetExamRoomsUseCase getExamRoomsUseCase;
   final GetSchoolYearsUseCase getSchoolYearsUseCase;
   final GetCourseHoursUseCase getCourseHoursUseCase;
+  final ExamRepository examRepository;
 
   AuthProvider? _authProvider;
 
@@ -30,10 +32,29 @@ class ExamProvider with ChangeNotifier {
     required this.getExamRoomsUseCase,
     required this.getSchoolYearsUseCase,
     required this.getCourseHoursUseCase,
+    required this.examRepository,
   });
 
   void setAuthProvider(AuthProvider auth) {
     _authProvider = auth;
+  }
+
+  // Clear data on logout
+  void clearData() {
+    _registerPeriods = [];
+    _availableSemesters = [];
+    _examRooms = [];
+    _examRoomEntities = [];
+    _courseHours = [];
+    _selectedRegisterPeriodId = null;
+    _selectedSemesterId = null;
+    _selectedExamRound = 1;
+    _isLoading = false;
+    _isLoadingSemesters = false;
+    _isLoadingRooms = false;
+    _errorMessage = null;
+    _roomErrorMessage = null;
+    notifyListeners();
   }
 
   List<Legacy.RegisterPeriod> _registerPeriods = [];
@@ -182,8 +203,9 @@ class ExamProvider with ChangeNotifier {
       }
     }
     if (_availableSemesters.isNotEmpty) {
-      final current = _availableSemesters.where((s) => s.isCurrent).firstOrNull;
-      _selectedSemesterId = current?.id ?? _availableSemesters.last.id;
+      final currents = _availableSemesters.where((s) => s.isCurrent).toList();
+      final mainCurrent = currents.where((s) => s.semesterName.toLowerCase().contains('học kỳ')).firstOrNull;
+      _selectedSemesterId = mainCurrent?.id ?? currents.firstOrNull?.id ?? _availableSemesters.last.id;
     }
   }
 
@@ -202,17 +224,43 @@ class ExamProvider with ChangeNotifier {
   Future<void> selectSemester(
     String accessToken,
     int semesterId,
-    String? rawToken,
-  ) async {
-    if (_selectedSemesterId == semesterId && _registerPeriods.isNotEmpty) {
+    String? rawToken, {
+    bool forceRefresh = false,
+  }) async {
+    if (_selectedSemesterId == semesterId && _registerPeriods.isNotEmpty && !forceRefresh) {
       return;
     }
 
     _selectedSemesterId = semesterId;
-    _isLoading = true;
     _errorMessage = null;
-    _registerPeriods = [];
-    notifyListeners();
+
+    if (!forceRefresh) {
+      // Step 1: Load cache immediately without spinning
+      final cacheResult = await examRepository.getCachedExamSchedules(semesterId);
+      cacheResult.fold(
+        (_) => null,
+        (cachedSchedules) {
+          if (cachedSchedules.isNotEmpty) {
+            _populateRegisterPeriods(
+              cachedSchedules,
+              semesterId,
+              accessToken,
+              rawToken,
+              forceRefresh: false,
+            );
+            notifyListeners();
+          }
+        },
+      );
+    }
+
+    // Step 2: Show loading spinner if memory is empty OR forceRefresh is true
+    final shouldShowSpinner = _registerPeriods.isEmpty || forceRefresh;
+    if (shouldShowSpinner) {
+      _isLoading = true;
+      _registerPeriods = [];
+      notifyListeners();
+    }
 
     String currentToken = accessToken;
 
@@ -233,9 +281,6 @@ class ExamProvider with ChangeNotifier {
       if (shouldRetry && _authProvider != null) {
         if (await _authProvider!.reLogin()) {
           currentToken = _authProvider!.accessToken!;
-          // Note: rawToken might also be updated in AuthProvider but we don't have access to it easily unless we read it from AuthProvider too.
-          // But GetExamSchedulesParams uses rawToken?
-          // Let's try to get it from AuthProvider if reLogin succeeds.
           final newRaw = _authProvider!.rawTokenStr ?? rawToken;
 
           result = await getExamSchedulesUseCase(
@@ -256,26 +301,30 @@ class ExamProvider with ChangeNotifier {
               semesterId,
               currentToken,
               rawToken,
-            ); // Use currentToken?
-            // Actually rawToken passed here is usually just for next calls?
+              forceRefresh: forceRefresh,
+            );
             _errorMessage = l.message;
           } else {
-            _errorMessage = l.message;
-            _log.log(
-              'Error fetching exam schedules: ${l.message}',
-              level: LogLevel.error,
-            );
-            // Even if failed, try to load room details if we happen to have register periods?
-            // No, periods come from here.
-            _selectedRegisterPeriodId = null;
+            if (shouldShowSpinner) {
+              _errorMessage = l.message;
+              _selectedRegisterPeriodId = null;
+            }
           }
         },
         (r) {
-          _populateRegisterPeriods(r, semesterId, currentToken, rawToken);
+          _populateRegisterPeriods(
+            r,
+            semesterId,
+            currentToken,
+            rawToken,
+            forceRefresh: forceRefresh,
+          );
         },
       );
     } catch (e) {
-      _errorMessage = e.toString();
+      if (shouldShowSpinner) {
+        _errorMessage = e.toString();
+      }
       _log.log('Exception fetching exam schedules: $e', level: LogLevel.error);
     } finally {
       _isLoading = false;
@@ -287,8 +336,9 @@ class ExamProvider with ChangeNotifier {
     List<ExamSchedule> schedules,
     int semesterId,
     String accessToken,
-    String? rawToken,
-  ) {
+    String? rawToken, {
+    bool forceRefresh = false,
+  }) {
     final currentSem =
         selectedSemester ??
         Legacy.SemesterDto(
@@ -323,6 +373,7 @@ class ExamProvider with ChangeNotifier {
         _selectedRegisterPeriodId!,
         _selectedExamRound,
         rawToken,
+        forceRefresh: forceRefresh,
       );
     } else {
       _selectedRegisterPeriodId = null;
@@ -334,12 +385,20 @@ class ExamProvider with ChangeNotifier {
     int semesterId,
     int periodId,
     int round,
-    String? rawToken,
-  ) {
-    if (_selectedRegisterPeriodId != periodId) {
+    String? rawToken, {
+    bool forceRefresh = false,
+  }) {
+    if (_selectedRegisterPeriodId != periodId || forceRefresh) {
       _selectedRegisterPeriodId = periodId;
       notifyListeners();
-      fetchExamRoomDetails(accessToken, semesterId, periodId, round, rawToken);
+      fetchExamRoomDetails(
+        accessToken,
+        semesterId,
+        periodId,
+        round,
+        rawToken,
+        forceRefresh: forceRefresh,
+      );
     }
   }
 
@@ -357,11 +416,35 @@ class ExamProvider with ChangeNotifier {
     int semesterId,
     int scheduleId,
     int round,
-    String? rawToken,
-  ) async {
-    _isLoadingRooms = true;
+    String? rawToken, {
+    bool forceRefresh = false,
+  }) async {
     _roomErrorMessage = null;
-    notifyListeners();
+
+    if (!forceRefresh) {
+      // Step 1: Load cache immediately without spinning
+      final cacheResult = await examRepository.getCachedExamRooms(
+        semesterId: semesterId,
+        scheduleId: scheduleId,
+        round: round,
+      );
+      cacheResult.fold(
+        (_) => null,
+        (cachedRooms) {
+          if (cachedRooms.isNotEmpty) {
+            _populateExamRooms(cachedRooms);
+            notifyListeners();
+          }
+        },
+      );
+    }
+
+    // Step 2: Show loading spinner if memory is empty OR forceRefresh is true
+    final shouldShowSpinner = _examRooms.isEmpty || forceRefresh;
+    if (shouldShowSpinner) {
+      _isLoadingRooms = true;
+      notifyListeners();
+    }
 
     String currentToken = accessToken;
 
@@ -404,8 +487,10 @@ class ExamProvider with ChangeNotifier {
             _populateExamRooms(l.data);
             _roomErrorMessage = l.message;
           } else {
-            _roomErrorMessage = l.message;
-            _examRooms = []; // Clear if real error
+            if (shouldShowSpinner) {
+              _roomErrorMessage = l.message;
+              _examRooms = []; // Clear if real error
+            }
           }
         },
         (r) {
@@ -413,13 +498,14 @@ class ExamProvider with ChangeNotifier {
         },
       );
     } catch (e) {
-      _roomErrorMessage = e.toString();
+      if (shouldShowSpinner) {
+        _roomErrorMessage = e.toString();
+      }
     } finally {
       _isLoadingRooms = false;
 
       // Schedule notifications
       if (_examRooms.isNotEmpty) {
-        // ... notification logic (existing)
         _scheduleNotifications();
       }
 

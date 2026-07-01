@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:forui/forui.dart';
+import 'package:provider/provider.dart';
 import 'package:tlucalendar/features/schedule/domain/entities/course.dart';
+import 'package:tlucalendar/providers/note_provider.dart';
 import 'package:tlucalendar/widgets/note_bottom_sheet.dart';
 
 class CourseCardOptimized extends StatefulWidget {
   final Course course;
   final String timeRange;
+  final DateTime classDate;
   final bool isPast;
   final bool isCurrent;
   final VoidCallback? onTap;
@@ -14,6 +17,7 @@ class CourseCardOptimized extends StatefulWidget {
     super.key,
     required this.course,
     required this.timeRange,
+    required this.classDate,
     this.isPast = false,
     this.isCurrent = false,
     this.onTap,
@@ -36,12 +40,11 @@ class _CourseCardOptimizedState extends State<CourseCardOptimized> {
       "Cẩn thận giảng viên điểm danh nhé sếp!",
       "Tôn ngộ không cũng không cứu nổi điểm chuyên cần của bạn."
     ];
-    final randomMessage = messages[DateTime.now().millisecondsSinceEpoch % messages.length];
-
-    // Show toast for gamification
+    
+    messages.shuffle();
     FToaster.of(context).show(
       builder: (context, entry) => FToast(
-        title: Text(randomMessage),
+        title: Text(messages.first),
         variant: FToastVariant.primary,
       ),
     );
@@ -50,6 +53,8 @@ class _CourseCardOptimizedState extends State<CourseCardOptimized> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final referenceId = 'course_${widget.course.id}_${widget.classDate.millisecondsSinceEpoch}';
+    final hasNote = context.watch<NoteProvider>().hasNoteFor(referenceId);
     // Use surface color with some elevation styling equivalent
     final bgColor = theme.colorScheme.surface;
     final borderColor = theme.colorScheme.outline.withValues(alpha: 0.5);
@@ -59,7 +64,7 @@ class _CourseCardOptimizedState extends State<CourseCardOptimized> {
       onPress: widget.onTap,
       title: Text(
         widget.course.courseName,
-        style: TextStyle(
+        style: Theme.of(context).textTheme.titleSmall?.copyWith(
           decoration: _isSkipped ? TextDecoration.lineThrough : null,
           color: _isSkipped ? Colors.grey : null,
         ),
@@ -70,7 +75,7 @@ class _CourseCardOptimizedState extends State<CourseCardOptimized> {
           const SizedBox(height: 4),
           Text(
             '${widget.course.room} • ${widget.timeRange}',
-            style: TextStyle(
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
               color: widget.isCurrent ? theme.colorScheme.primary : null,
               fontWeight: widget.isCurrent ? FontWeight.bold : null,
             ),
@@ -88,7 +93,30 @@ class _CourseCardOptimizedState extends State<CourseCardOptimized> {
         mainAxisSize: MainAxisSize.min,
         children: [
           IconButton(
-            icon: Icon(FLucideIcons.notebookPen, size: 20, color: theme.colorScheme.primary),
+            icon: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Icon(
+                  FLucideIcons.notebookPen,
+                  size: 20,
+                  color: hasNote ? theme.colorScheme.primary : theme.colorScheme.onSurfaceVariant,
+                ),
+                if (hasNote)
+                  Positioned(
+                    top: -2,
+                    right: -2,
+                    child: Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: theme.colorScheme.error,
+                        shape: BoxShape.circle,
+                        border: Border.all(color: bgColor, width: 1.5),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
             onPressed: () {
               showModalBottomSheet(
                 context: context,

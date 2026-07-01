@@ -15,6 +15,7 @@ import 'package:tlucalendar/screens/logs_screen.dart';
 import 'package:tlucalendar/utils/error_logger.dart';
 import 'package:tlucalendar/services/backup_service.dart';
 import 'package:tlucalendar/screens/app_initializer.dart';
+import 'package:tlucalendar/utils/semester_parser.dart';
 
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -79,8 +80,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         alignment: Alignment.center,
                         child: Text(
                           initials,
-                          style: TextStyle(
-                            fontSize: 22,
+                          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
                             fontWeight: FontWeight.bold,
                             color: colorScheme.onPrimary,
                           ),
@@ -100,7 +100,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             const SizedBox(height: 4),
                             Text(
                               user.email,
-                              style: TextStyle(
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                 color: colorScheme.onSurfaceVariant,
                               ),
                             ),
@@ -171,7 +171,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             ),
                             child: Text(
                               settings.dailyNotificationTime.format(context),
-                              style: TextStyle(
+                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                 fontWeight: FontWeight.bold,
                                 color: colorScheme.primary,
                               ),
@@ -293,8 +293,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   children: [
                     Text(
                       'TLU Calendar',
-                      style: TextStyle(
-                        fontSize: 15,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                         color: colorScheme.primary,
                       ),
@@ -302,12 +301,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     const SizedBox(height: 4),
                     Text(
                       'Phiên bản 2026.07.01',
-                      style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 13),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       'Bởi Nguyen Duy Thanh & Dang Quang Hien (Miho)',
-                      style: TextStyle(color: colorScheme.onSurfaceVariant, fontSize: 13),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
                     ),
                   ],
                 ),
@@ -375,7 +374,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     final userId = authProvider.isLoggedIn ? (authProvider.currentUser?.studentId ?? 'unknown_user') : 'not_logged_in';
     final userName = authProvider.isLoggedIn ? (authProvider.currentUser?.fullName ?? 'unknown') : 'not_logged_in';
-    final selectedSemester = scheduleProvider.selectedSemester?.semesterName ?? 'unknown';
+    final selectedSemester = scheduleProvider.selectedSemester?.semesterName.toReadableSemester ?? 'unknown';
 
     final errorLogger = ErrorLogger();
     final errorLogs = errorLogger.getFormattedErrors();

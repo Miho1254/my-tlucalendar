@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:forui/forui.dart';
+import 'package:provider/provider.dart';
+import 'package:tlucalendar/features/notes/domain/models/note_model.dart';
+import 'package:tlucalendar/providers/note_provider.dart';
 import 'package:tlucalendar/features/schedule/domain/entities/course.dart';
 
 enum CourseStatus { past, current, future }
@@ -128,6 +131,8 @@ class TimelineItemOptimized extends StatelessWidget {
     bool isCurrent,
   ) {
     final theme = Theme.of(context);
+    final note = context.watch<NoteProvider>().getNoteFor(course.id.toString());
+    
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -191,6 +196,38 @@ class TimelineItemOptimized extends StatelessWidget {
             ),
           ],
         ),
+        if (note != null) ...[
+          const SizedBox(height: 12),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: colorScheme.outlineVariant.withValues(alpha: 0.5)),
+            ),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(FLucideIcons.notebookPen, size: 14, color: colorScheme.primary),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    note.type == NoteType.plainText
+                        ? (note.content?.isNotEmpty == true ? note.content! : 'Có ghi chú')
+                        : 'Có ${note.items?.where((i) => !i.isCompleted).length ?? 0} công việc chưa xong',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colorScheme.onSurfaceVariant,
+                      fontStyle: FontStyle.italic,
+                    ),
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ],
     );
   }

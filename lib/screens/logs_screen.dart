@@ -186,15 +186,14 @@ class _LogsScreenState extends State<LogsScreen> {
         ),
         title: Text(
           log.message,
-          style: TextStyle(
-            fontSize: 12,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
             fontFamily: 'monospace',
             color: Theme.of(context).colorScheme.onSurface,
           ),
         ),
         subtitle: Text(
           timestamp,
-          style: TextStyle(
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
             fontSize: 10,
             color: Theme.of(context).colorScheme.onSurfaceVariant,
           ),

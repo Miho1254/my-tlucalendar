@@ -4,11 +4,13 @@ import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:tlucalendar/providers/exam_provider.dart';
 import 'package:tlucalendar/providers/auth_provider.dart';
+import 'package:tlucalendar/providers/note_provider.dart';
 import 'package:tlucalendar/features/exam/data/models/exam_dtos.dart' as Legacy;
 import 'package:tlucalendar/widgets/schedule_skeleton.dart';
 import 'package:tlucalendar/widgets/empty_state_widget.dart';
 import 'package:tlucalendar/widgets/note_bottom_sheet.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
+import 'package:tlucalendar/utils/semester_parser.dart';
 
 class ExamScheduleScreen extends StatefulWidget {
   const ExamScheduleScreen({super.key});
@@ -160,98 +162,116 @@ class _ExamScheduleScreenState extends State<ExamScheduleScreen> {
     ExamProvider examProvider,
   ) {
     final selectedSemesterName =
-        examProvider.selectedSemester?.semesterName ?? 'Chọn học kỳ';
+        examProvider.selectedSemester?.semesterName.toReadableSemester ?? 'Chọn học kỳ';
 
-    return CustomScrollView(
-      slivers: [
-        SliverAppBar(
-          floating: false,
-          snap: false,
-          pinned: false,
-          elevation: 0,
-          title: Text(
-            'Lịch thi',
-            style: Theme.of(
-              context,
-            ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
-          ),
-          bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(80),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-              child: FTileGroup(
-                children: [
-                  FTile(
-                    prefix: Icon(
-                      Icons.tune,
-                      size: 20,
-                      color: Theme.of(context).colorScheme.primary,
-                    ),
-                    title: Text(
-                      'Bộ lọc hiển thị',
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                        color: Theme.of(context).colorScheme.primary,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    subtitle: Text(
-                      '$selectedSemesterName • Lần ${examProvider.selectedExamRound}',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    suffix: const Icon(Icons.keyboard_arrow_down),
-                    onPress: () {
-                      HapticFeedback.lightImpact();
-                      _showFilterBottomSheet(context, examProvider, authProvider);
-                    },
-                  ),
-                ],
-              ),
+    return RefreshIndicator(
+      onRefresh: () async {
+        if (examProvider.selectedSemesterId != null) {
+          await examProvider.selectSemester(
+            authProvider.accessToken!,
+            examProvider.selectedSemesterId!,
+            authProvider.rawTokenStr,
+            forceRefresh: true,
+          );
+        }
+      },
+      child: CustomScrollView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        slivers: [
+          SliverAppBar(
+            floating: false,
+            snap: false,
+            pinned: false,
+            elevation: 0,
+            title: Text(
+              'Lịch thi',
+              style: Theme.of(
+                context,
+              ).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
-          ),
-        ),
-
-        if (examProvider.errorMessage != null)
-          SliverToBoxAdapter(
-            child: Container(
-              margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                color: Theme.of(context).colorScheme.errorContainer,
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: Theme.of(context).colorScheme.error.withValues(alpha: 0.2),
+            bottom: PreferredSize(
+              preferredSize: const Size.fromHeight(80),
+              child: Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+                child: FTileGroup(
+                  children: [
+                    FTile(
+                      prefix: Icon(
+                        Icons.tune,
+                        size: 20,
+                        color: Theme.of(context).colorScheme.primary,
+                      ),
+                      title: Text(
+                        'Bộ lọc hiển thị',
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: Theme.of(context).colorScheme.primary,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      subtitle: Text(
+                        '$selectedSemesterName • Lần ${examProvider.selectedExamRound}',
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                      suffix: const Icon(Icons.keyboard_arrow_down),
+                      onPress: () {
+                        HapticFeedback.lightImpact();
+                        _showFilterBottomSheet(context, examProvider, authProvider);
+                      },
+                    ),
+                  ],
                 ),
               ),
-              child: Row(
-                children: [
-                  Icon(
-                    Icons.cloud_off,
-                    color: Theme.of(context).colorScheme.error,
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Text(
-                      examProvider.errorMessage!,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onErrorContainer,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
             ),
           ),
 
-        // Exam room details
-        _buildExamRoomDetails(context, authProvider, examProvider),
+          if (examProvider.errorMessage != null)
+            SliverToBoxAdapter(
+              child: Container(
+                margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  color: Theme.of(context).colorScheme.errorContainer,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.error.withValues(alpha: 0.2),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.cloud_off,
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        examProvider.errorMessage!,
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: Theme.of(context).colorScheme.onErrorContainer,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
 
-        const SliverToBoxAdapter(child: SizedBox(height: 100)),
-      ],
+          // Exam room details
+          _buildExamRoomDetails(context, authProvider, examProvider),
+
+          // Add bottom safe area padding (automatically accounts for the Liquid Glass tab bar)
+          const SliverSafeArea(
+            top: false,
+            bottom: true,
+            sliver: SliverToBoxAdapter(child: SizedBox(height: 16)),
+          ),
+        ],
+      ),
     );
   }
 
@@ -455,7 +475,7 @@ class _ExamScheduleScreenState extends State<ExamScheduleScreen> {
                           items: provider.availableSemesters.map((s) {
                             return DropdownMenuItem<int>(
                               value: s.id,
-                              child: Text(s.semesterName),
+                              child: Text(s.semesterName.toReadableSemester),
                             );
                           }).toList(),
                           onChanged: (val) {
@@ -600,6 +620,7 @@ class _ExamScheduleScreenState extends State<ExamScheduleScreen> {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final hasNote = context.watch<NoteProvider>().hasNoteFor(examRoom.id.toString());
 
     // Calculate countdown
     String countdownText = '';
@@ -702,7 +723,26 @@ class _ExamScheduleScreenState extends State<ExamScheduleScreen> {
                   ),
                   const SizedBox(width: 12),
                   IconButton(
-                    icon: Icon(FLucideIcons.notebookPen, color: colorScheme.primary, size: 20),
+                    icon: Stack(
+                      clipBehavior: Clip.none,
+                      children: [
+                        Icon(FLucideIcons.notebookPen, color: colorScheme.primary, size: 20),
+                        if (hasNote)
+                          Positioned(
+                            top: -2,
+                            right: -2,
+                            child: Container(
+                              width: 8,
+                              height: 8,
+                              decoration: BoxDecoration(
+                                color: theme.colorScheme.error,
+                                shape: BoxShape.circle,
+                                border: Border.all(color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5), width: 1.5),
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
                     onPressed: () {
                       DateTime? examDate;
                       if (examRoom.examRoom?.examDateString != null) {

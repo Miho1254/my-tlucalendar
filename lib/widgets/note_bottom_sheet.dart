@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:forui/forui.dart';
+import 'package:provider/provider.dart';
 import 'package:tlucalendar/features/notes/domain/models/note_model.dart';
-import 'package:tlucalendar/features/notes/data/services/note_service.dart';
+import 'package:tlucalendar/providers/note_provider.dart';
 import 'package:tlucalendar/services/notification_service.dart';
 
 class NoteBottomSheet extends StatefulWidget {
@@ -22,7 +23,6 @@ class NoteBottomSheet extends StatefulWidget {
 }
 
 class _NoteBottomSheetState extends State<NoteBottomSheet> {
-  final _noteService = NoteService();
   bool _isLoading = true;
   NoteModel? _note;
   
@@ -40,15 +40,16 @@ class _NoteBottomSheetState extends State<NoteBottomSheet> {
   }
 
   Future<void> _loadNote() async {
-    final notes = await _noteService.getNotesForReference(widget.referenceId);
-    if (notes.isNotEmpty) {
-      _note = notes.first;
-      _currentType = _note!.type;
-      _enableReminder = _note!.hasReminder;
+    final noteProvider = Provider.of<NoteProvider>(context, listen: false);
+    final note = noteProvider.getNoteFor(widget.referenceId);
+    if (note != null) {
+      _note = note;
+      _currentType = note.type;
+      _enableReminder = note.hasReminder;
       if (_currentType == NoteType.plainText) {
-        _textController.text = _note!.content ?? '';
+        _textController.text = note.content ?? '';
       } else {
-        _todoItems = List.from(_note!.items ?? []);
+        _todoItems = List.from(note.items ?? []);
       }
     }
     setState(() {
@@ -70,7 +71,8 @@ class _NoteBottomSheetState extends State<NoteBottomSheet> {
       hasReminder: _enableReminder,
     );
 
-    await _noteService.saveNote(newNote);
+    final noteProvider = Provider.of<NoteProvider>(context, listen: false);
+    await noteProvider.saveNote(newNote);
 
     if (_enableReminder && widget.eventDate != null) {
       final notiService = NotificationService();
@@ -86,6 +88,14 @@ class _NoteBottomSheetState extends State<NoteBottomSheet> {
     }
 
     if (mounted) Navigator.pop(context);
+  }
+
+  Future<void> _deleteNote() async {
+    if (_note != null) {
+      final noteProvider = Provider.of<NoteProvider>(context, listen: false);
+      await noteProvider.deleteNote(_note!.id);
+      if (mounted) Navigator.pop(context);
+    }
   }
 
   void _addTodoItem() {
@@ -217,17 +227,22 @@ class _NoteBottomSheetState extends State<NoteBottomSheet> {
                                     children: [
                                       FCheckbox(
                                         value: item.isCompleted,
-                                        onChange: (val) {
+                                        onChange: (value) {
                                           setState(() {
-                                            _todoItems[idx] = item.copyWith(isCompleted: val);
+                                            _todoItems[idx] = item.copyWith(isCompleted: value);
                                           });
+                                          // If note is already saved, we can optionally auto-save item state
+                                          if (_note != null) {
+                                            final noteProvider = Provider.of<NoteProvider>(context, listen: false);
+                                            noteProvider.toggleTodoItem(_note!.id, item.id);
+                                          }
                                         },
                                       ),
                                       const SizedBox(width: 12),
                                       Expanded(
                                         child: Text(
                                           item.text,
-                                          style: TextStyle(
+                                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                                             decoration: item.isCompleted ? TextDecoration.lineThrough : null,
                                             color: item.isCompleted ? colorScheme.outline : colorScheme.onSurface,
                                           ),
@@ -284,9 +299,23 @@ class _NoteBottomSheetState extends State<NoteBottomSheet> {
               bottom: MediaQuery.of(context).padding.bottom + 24,
               top: 16,
             ),
-            child: FButton(
-              onPress: _saveNote,
-              child: const Text('Lưu Ghi Chú'),
+            child: Row(
+              children: [
+                if (_note != null) ...[
+                  FButton.icon(
+                    onPress: _deleteNote,
+                    variant: FButtonVariant.outline,
+                    child: Icon(FLucideIcons.trash2, color: Theme.of(context).colorScheme.error),
+                  ),
+                  const SizedBox(width: 16),
+                ],
+                Expanded(
+                  child: FButton(
+                    onPress: _saveNote,
+                    child: const Text('Lưu Ghi Chú'),
+                  ),
+                ),
+              ],
             ),
           ),
         ],

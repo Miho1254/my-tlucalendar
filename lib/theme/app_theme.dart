@@ -13,7 +13,8 @@ class AppTheme {
   static const Color _zinc800   = Color(0xFF27272A); // Hairline border
   static const Color _zinc400   = Color(0xFFA1A1AA); // Muted / Caption
   static const Color _white     = Color(0xFFFAFAFA); // Primary foreground
-  static const Color _indigo500 = Color(0xFF6366F1); // Brand accent
+  static const Color _indigo500 = Color(0xFF6366F1); // Brand accent (Dark)
+  static const Color _indigo600 = Color(0xFF4F46E5); // Brand accent (Light)
   static const Color _red500    = Color(0xFFEF4444); // Destructive
 
   // Light palette
@@ -243,8 +244,9 @@ class AppTheme {
       brightness: Brightness.light,
       scaffoldBackgroundColor: _lightBg,
       colorScheme: ColorScheme.fromSeed(
-        seedColor: _indigo500,
+        seedColor: _indigo600,
         brightness: Brightness.light,
+        primary: _indigo600,
         surface: _lightBg,
         onSurface: _lightText,
       ),
@@ -278,26 +280,25 @@ class AppTheme {
   // ════════════════════════════════════════════════════════
   static TextTheme _buildTextTheme(TextTheme base, Color body, Color caption) {
     return GoogleFonts.interTextTheme(base).copyWith(
-      // Large Title 34pt (Apple HIG)
-      displayLarge: GoogleFonts.inter(fontSize: 34, fontWeight: FontWeight.w700, color: body, letterSpacing: -0.5),
-      displayMedium: GoogleFonts.inter(fontSize: 28, fontWeight: FontWeight.w700, color: body, letterSpacing: -0.3),
-      displaySmall: GoogleFonts.inter(fontSize: 24, fontWeight: FontWeight.w600, color: body),
-      headlineLarge: GoogleFonts.inter(fontSize: 22, fontWeight: FontWeight.w600, color: body),
-      headlineMedium: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.w600, color: body),
-      headlineSmall: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w600, color: body),
-      // Inline Title 17pt Semibold (Apple HIG)
-      titleLarge: GoogleFonts.inter(fontSize: 17, fontWeight: FontWeight.w600, color: body),
-      titleMedium: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w500, color: body),
-      titleSmall: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w500, color: body),
-      // Body 17pt Regular (Apple HIG)
-      bodyLarge: GoogleFonts.inter(fontSize: 17, fontWeight: FontWeight.w400, color: body),
-      bodyMedium: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w400, color: body),
-      // Caption 13pt (Apple HIG: 60–70% opacity → Zinc 400)
-      bodySmall: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w400, color: caption),
-      labelLarge: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w500, color: body),
-      labelMedium: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w500, color: caption),
-      // Tab Label 11pt (Apple HIG)
-      labelSmall: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w400, color: caption, letterSpacing: 0),
+      // "Wow" Premium Typography
+      displayLarge: GoogleFonts.inter(fontSize: 32, fontWeight: FontWeight.w800, color: body, letterSpacing: -1.0, height: 1.2),
+      displayMedium: GoogleFonts.inter(fontSize: 28, fontWeight: FontWeight.w800, color: body, letterSpacing: -0.8, height: 1.2),
+      displaySmall: GoogleFonts.inter(fontSize: 24, fontWeight: FontWeight.w700, color: body, letterSpacing: -0.5, height: 1.2),
+      headlineLarge: GoogleFonts.inter(fontSize: 24, fontWeight: FontWeight.w700, color: body, letterSpacing: -0.5, height: 1.2),
+      headlineMedium: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.w600, color: body, letterSpacing: -0.3, height: 1.3),
+      headlineSmall: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w600, color: body, letterSpacing: -0.2, height: 1.3),
+      // Inline Titles
+      titleLarge: GoogleFonts.inter(fontSize: 17, fontWeight: FontWeight.w600, color: body, letterSpacing: -0.2, height: 1.3),
+      titleMedium: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w500, color: body, letterSpacing: -0.1, height: 1.4),
+      titleSmall: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w500, color: body, height: 1.4),
+      // Body (Clean & readable)
+      bodyLarge: GoogleFonts.inter(fontSize: 17, fontWeight: FontWeight.w400, color: body, height: 1.5),
+      bodyMedium: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w400, color: body, height: 1.5),
+      bodySmall: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w400, color: caption, height: 1.5),
+      // Labels / UI Elements
+      labelLarge: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w500, color: body, height: 1.4),
+      labelMedium: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w500, color: caption, height: 1.4),
+      labelSmall: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w400, color: caption, letterSpacing: 0, height: 1.4),
     );
   }
 }

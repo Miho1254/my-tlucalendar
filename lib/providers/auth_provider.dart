@@ -7,6 +7,11 @@ import 'package:tlucalendar/services/auto_refresh_service.dart';
 import 'package:tlucalendar/services/log_service.dart';
 import 'package:tlucalendar/features/auth/domain/usecases/login_usecase.dart';
 import 'package:tlucalendar/features/auth/domain/usecases/get_user_usecase.dart';
+import 'package:tlucalendar/services/database_helper.dart';
+import 'package:get_it/get_it.dart';
+import 'package:tlucalendar/providers/schedule_provider.dart';
+import 'package:tlucalendar/providers/exam_provider.dart';
+import 'package:tlucalendar/providers/grade_provider.dart';
 
 class AuthProvider extends ChangeNotifier {
   final LoginUseCase loginUseCase;
@@ -125,12 +130,6 @@ class AuthProvider extends ChangeNotifier {
           await _storage.write(key: 'studentCode', value: studentCode);
           await _storage.write(key: 'password', value: password);
 
-          // Save other token fields if needed, or serialize the whole map
-          // For simplicity, we just keep it in memory. If app restarts, we might lose refresh_token
-          // if we don't save it. For now, let's just make it work for the session.
-
-          // Ideally: await _prefs.setString('rawToken', jsonEncode(tokenData));
-
           // Fetch User Info
           _loginProgress = 'Đang lấy thông tin sinh viên...';
           _loginProgressPercent = 0.5;
@@ -225,6 +224,26 @@ class AuthProvider extends ChangeNotifier {
     await _storage.deleteAll();
     _rawTokenData = null;
     _rawTokenStr = null;
+
+    // Clear SQLite tables
+    try {
+      await DatabaseHelper.instance.clearAllData();
+    } catch (_) {}
+
+    // Clear Provider RAM states
+    try {
+      final getIt = GetIt.instance;
+      if (getIt.isRegistered<ScheduleProvider>()) {
+        getIt<ScheduleProvider>().clearData();
+      }
+      if (getIt.isRegistered<ExamProvider>()) {
+        getIt<ExamProvider>().clearData();
+      }
+      if (getIt.isRegistered<GradeProvider>()) {
+        getIt<GradeProvider>().clearData();
+      }
+    } catch (_) {}
+
     notifyListeners();
   }
 }
