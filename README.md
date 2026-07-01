@@ -1,46 +1,51 @@
-# TLU Calendar - Ứng dụng xem lịch học, lịch thi Đại Học Thủy Lợi (Miho's Version)
+# TLU Calendar (Miho's Version)
 
-**TLU Calendar** là ứng dụng hữu ích dành riêng cho sinh viên **Đại học Thủy Lợi (Thuy Loi University - TLU)**, giúp quản lý lịch học, lịch thi, tra cứu điểm và đăng ký học một cách tiện lợi, nhanh chóng nhất. 
+TLU Calendar is an unofficial scheduling and academic management application built for students of Thuy Loi University (TLU). It provides an intuitive interface to access course schedules, exam timetables, academic grades, and course registration.
 
-*(Lưu ý: Đây là dự án cá nhân được refactor và tối ưu lại UI/UX từ ứng dụng TLU Calendar gốc nhằm mang lại trải nghiệm mượt mà, đẹp mắt hơn cho sinh viên Thủy Lợi. Nếu bạn đang tìm kiếm **file APK TLU Calendar** để cài đặt, hãy xem phần Tải xuống ở bên dưới).*
+This repository is a comprehensive refactor of the original application, focusing on modernizing the UI/UX, improving application performance, and implementing robust offline capabilities.
 
----
+## Key Features
 
-## Tính năng nổi bật cho Sinh viên TLU
-Ứng dụng cung cấp các công cụ thiết yếu cho cuộc sống đại học:
-- **Xem Lịch Học & Lịch Thi:** Đồng bộ nhanh chóng, giao diện trực quan, dễ dàng theo dõi thời khóa biểu hàng tuần.
-- **Tra cứu điểm:** Xem điểm thi, điểm tổng kết các học kỳ.
-- **Đăng ký môn học:** Tiện ích hỗ trợ sinh viên thao tác nhanh gọn.
-- **Hỗ trợ toàn diện Light/Dark Mode:** Giao diện tự thích ứng bảo vệ mắt dù xem lịch ban ngày hay ban đêm.
+- **Schedule Management**: View weekly course timetables and exam schedules with offline caching.
+- **Academic Grades & Analytics**: Access semester grades, analyze academic performance over time, and simulate future GPA goals.
+- **Quick Access Tools**: Course registration and grade tracking available directly from the Today screen.
+- **Customizable Experience**: Full system-level light and dark mode support with dynamic theming.
+- **Personal Notes**: Attach personal notes to specific course sessions and exams directly on the calendar.
 
-## Những thay đổi chính trong phiên bản Refactor (Miho's Version)
-Trong quá trình refactor lại ứng dụng, mình đã tập trung tối ưu hóa giao diện (UI) chuẩn hiện đại và trải nghiệm người dùng (UX):
+## Comprehensive Refactoring Journey
 
-1.  **Thiết kế lại toàn diện Cài đặt (Settings):**
-    *   Áp dụng ngôn ngữ thiết kế chuẩn Apple HIG kết hợp với hệ thống component của `forui`.
-    *   Bổ sung tính năng Backup/Restore dữ liệu, và ẩn tính năng System Logs vào Developer Mode (nhấn 5 lần vào phiên bản để mở khóa).
-2.  **Cải tiến Tiện ích & Trải nghiệm:**
-    *   Chuyển các tính năng "Tra cứu điểm" và "Đăng ký học" ra màn hình "Hôm nay" để tiện truy cập ngay lập tức.
-    *   Bổ sung luồng Setup Wizard (Trình thiết lập 3 bước) cho người dùng mới khi khởi chạy ứng dụng lần đầu.
-    *   Redesign nút bấm mở bộ lọc lịch thi đẹp mắt hơn, có haptic feedback mang lại cảm giác phản hồi tự nhiên.
-3.  **Hỗ trợ hoàn chỉnh Light/Dark Mode:**
-    *   Loại bỏ hoàn toàn các màu nền cứng (hardcode colors), chuyển đổi toàn bộ sang dùng semantic colors (`colorScheme`) giúp app thích ứng tự nhiên với cả giao diện sáng và tối.
-    *   Sửa lỗi tương phản trên các thẻ lịch thi (Exam Cards) trong Dark Mode.
-    *   Tối ưu hóa màu chữ, bỏ các lớp `Opacity` làm mờ chữ không cần thiết, giúp văn bản cực kì sắc nét.
-4.  **Làm mới giao diện Lịch (Calendar UI):**
-    *   Thay đổi cách nhận diện ngày hiện tại (Today): Bỏ gạch chân khó nhìn, thay bằng vòng tròn nổi bật.
-    *   Thay đổi màu sắc và kích thước của các dấu chấm (dots) báo hiệu có lịch học/lịch thi để dễ nhận diện hơn, đặc biệt trên nền sáng.
-5.  **Tinh chỉnh Bố cục & Fix Bug:**
-    *   Loại bỏ các sticky header (tiêu đề bám dính) không cần thiết ở màn hình Lịch thi và Cài đặt, giúp cuộn mượt mà hơn.
-    *   Fix triệt để lỗi crash app trên nền tảng Linux do thiếu cấu hình `flutter_local_notifications`.
-    *   Cập nhật thông tin tác giả bản refactor và version mới nhất (`2026.07.01`).
+This project has undergone significant architectural and visual improvements to provide a more stable and aesthetically pleasing experience. The changes span across several core domains of the application.
 
-## Tác giả gốc
+### 1. Modernized User Interface (UI/UX)
+- **Apple HIG & ForUI Integration**: The entire application interface was redesigned using the `forui` package to adhere to Apple's Human Interface Guidelines.
+- **Liquid Glass Tab Bar**: Implemented a floating, translucent tab bar for seamless bottom navigation.
+- **Setup Wizard**: Introduced a comprehensive onboarding flow for first-time users to configure credentials and preferences easily.
+- **Dynamic Theming**: Removed all hardcoded colors. The application now strictly uses `Theme.of(context).colorScheme` to ensure perfect contrast and visual hierarchy in both Light and Dark modes.
+- **Typography & Layout**: Redesigned course cards, timeline items, and exam schedules to display critical information (e.g., start/end times, locations) more clearly with improved padding and visual boundaries.
 
-Rất cảm ơn tác giả gốc của ứng dụng đã tạo ra một nền tảng tuyệt vời để mình có thể dựa vào và phát triển thêm.
-* **Tác giả:** nekkochan0x0007
-* **Source code gốc:** [https://gitlab.com/nekkochan0x0007/tlucalendar](https://gitlab.com/nekkochan0x0007/tlucalendar)
+### 2. Robust Caching & Offline Mode
+- **Database-Backed Storage**: Replaced rudimentary caching with a structured SQLite database (`DatabaseHelper`). Course schedules, exam data, and grades are now stored locally.
+- **Offline-First Approach**: The application immediately loads data from the local database upon launch, ensuring instant access even without an active internet connection.
+- **Smart Refreshing**: Integrated pull-to-refresh mechanisms across all major screens.
+- **Secure Session Management**: Ensured that logging out completely clears all cached local data to maintain user privacy.
 
-## Tác giả bản Refactor
+### 3. Core Logic & Bug Fixes
+- **Semester Auto-Detection**: Fixed a critical bug in the TLU API parsing where the application would incorrectly default to "Chuẩn đầu ra" (Exit Requirements) instead of the main academic semester. The logic now strictly filters and prioritizes standard semesters.
+- **Calendar Marker Accuracy**: Resolved ghosting issues with calendar note indicators by implementing composite primary keys.
+- **Scroll View Optimizations**: Eliminated "invisible scroll" bugs by replacing static oversized paddings with dynamic `SliverSafeArea` configurations, ensuring content naturally scrolls behind the translucent tab bar.
+- **Platform Compatibility**: Fixed initialization crashes on desktop/Linux environments caused by unsupported notification plugins.
 
-* Nguyễn Duy Thành & Đặng Quang Hiển (Miho)
+### 4. Advanced Grade Analytics
+- **GPA Simulation**: Added a new analytics dashboard that allows students to view their GPA progression, set graduation goals, and manually simulate how upcoming grades will affect their final cumulative GPA.
+
+### 5. Developer Tools & CI/CD
+- **Developer Mode**: Built a hidden developer menu (accessible by tapping the version number in settings 5 times) to view application logs and manage backup/restore operations.
+- **Automated Builds**: Streamlined the `.github/workflows/release_main.yaml` CI/CD pipeline. The repository now automatically compiles and publishes a ready-to-install Android APK on GitHub Releases whenever new code is merged to the main branch.
+
+## Credits & Acknowledgments
+
+This refactor was built upon the foundation of the original TLU Calendar project.
+- **Original Author**: nekkochan0x0007
+- **Original Source**: https://gitlab.com/nekkochan0x0007/tlucalendar
+
+- **Refactor Authors**: Nguyen Duy Thanh & Dang Quang Hien (Miho)
