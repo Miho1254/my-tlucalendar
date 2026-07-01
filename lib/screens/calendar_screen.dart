@@ -143,7 +143,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 _buildCourseSliverList(context),
               ] else ...[
                 SliverToBoxAdapter(
-                  child: WeeklyTimetableWidget(selectedDate: _selectedDate),
+                  child: WeeklyTimetableWidget(
+                    key: ValueKey('week_${_selectedDate.year}_${_selectedDate.month}_${_selectedDate.day}'),
+                    selectedDate: _selectedDate,
+                  ),
                 ),
                 const SliverToBoxAdapter(child: SizedBox(height: 24)),
               ],

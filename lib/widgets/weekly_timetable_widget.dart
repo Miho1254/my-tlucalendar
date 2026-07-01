@@ -109,6 +109,11 @@ class WeeklyTimetableWidget extends StatelessWidget {
     // Generate 6 days: Thứ 2 -> Thứ 7
     final days = List.generate(6, (i) => monday.add(Duration(days: i)));
 
+    // Check if today is in this week
+    final now = DateTime.now();
+    final todayInWeek = days.any((d) =>
+        d.year == now.year && d.month == now.month && d.day == now.day);
+
     // Check if we need evening periods (11-13)
     bool hasEvening = false;
     for (int dayIdx = 0; dayIdx < 6; dayIdx++) {
@@ -262,12 +267,14 @@ class WeeklyTimetableWidget extends StatelessWidget {
                       final isCurrentSelected = date.year == selectedDate.year &&
                           date.month == selectedDate.month &&
                           date.day == selectedDate.day;
-                      final isToday = date.year == DateTime.now().year &&
-                          date.month == DateTime.now().month &&
-                          date.day == DateTime.now().day;
+                      final isToday = todayInWeek &&
+                          date.year == now.year &&
+                          date.month == now.month &&
+                          date.day == now.day;
                       final dayName = _getDayName(index + 2);
 
                       return Container(
+                        key: ValueKey('day_header_${date.month}_${date.day}'),
                         width: _dayColumnWidth,
                         height: 45,
                         margin: const EdgeInsets.only(left: 0.0),
@@ -276,7 +283,7 @@ class WeeklyTimetableWidget extends StatelessWidget {
                                 color: colors.primary.withValues(alpha: 0.1),
                                 borderRadius: BorderRadius.circular(8),
                               )
-                            : null,
+                            : const BoxDecoration(),
                         child: Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
