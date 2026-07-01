@@ -43,7 +43,7 @@ jobs:
       - name: Read app version
         id: version
         run: |
-          VERSION="$(awk '/^version:/ {print $2; exit}' pubspec.yaml)"
+          VERSION="$(awk '/^version:/ {print $2; exit}' pubspec.yaml | tr -d '[:space:]')"
           SHORT_SHA="${GITHUB_SHA::7}"
           echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "tag=v${VERSION}-${SHORT_SHA}" >> "$GITHUB_OUTPUT"
