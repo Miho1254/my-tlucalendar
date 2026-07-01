@@ -132,7 +132,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
               );
             }
           },
-          child: CustomScrollView(
+          child: RepaintBoundary(
+            child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
               SliverToBoxAdapter(child: _buildHeader(context)),
@@ -153,6 +154,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
               ],
             ],
           ),
+        ),
         ),
       ),
     );
