@@ -42,11 +42,6 @@ jobs:
       - name: Get dependencies
         run: flutter pub get
 
-      - name: Fetch Crashpad Sources
-        run: |
-          chmod +x android/app/src/main/cpp/init_crashpad_source.sh
-          ./android/app/src/main/cpp/init_crashpad_source.sh
-
       - name: Generate Temporary Keystore
         run: |
           keytool -genkey -v -keystore android/rel.jks -keyalg RSA -keysize 2048 -validity 10000 -alias my-key-alias -dname "CN=Unknown, OU=Unknown, O=Unknown, L=Unknown, ST=Unknown, C=Unknown" -storepass android -keypass android
