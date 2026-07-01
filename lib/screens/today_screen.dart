@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:tlucalendar/providers/auth_provider.dart';
 import 'package:tlucalendar/providers/schedule_provider.dart';
+import 'package:tlucalendar/providers/exam_provider.dart';
 import 'package:tlucalendar/features/schedule/domain/entities/course.dart';
 import 'package:tlucalendar/widgets/empty_state_widget.dart';
 import 'package:tlucalendar/widgets/schedule_skeleton.dart';
@@ -103,11 +104,23 @@ class _TodayScreenState extends State<TodayScreen> {
               onRefresh: () async {
                 if (authProvider.accessToken != null &&
                     scheduleProvider.currentSemester != null) {
+                  // Refresh schedule (await — blocks UI until done)
                   await scheduleProvider.loadSchedule(
                     authProvider.accessToken!,
                     scheduleProvider.currentSemester!.id,
                     forceRefresh: true,
                   );
+
+                  // Fire-and-forget exam refresh (don't block UI)
+                  final examProvider = context.read<ExamProvider>();
+                  if (examProvider.selectedSemesterId != null) {
+                    examProvider.selectSemester(
+                      authProvider.accessToken!,
+                      examProvider.selectedSemesterId!,
+                      authProvider.rawTokenStr,
+                      forceRefresh: true,
+                    );
+                  }
                 }
               },
               child: CustomScrollView(
