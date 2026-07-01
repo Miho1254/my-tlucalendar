@@ -9,7 +9,7 @@
 <br />
 
 [![Flutter](https://img.shields.io/badge/Flutter-3.x-blue?style=flat-square&logo=flutter)](https://flutter.dev)
-[![Release](https://img.shields.io/github/actions/workflow/status/Miho1254/my-tlucalendar/release_main.yaml?style=flat-square&label=Release)](https://github.com/Miho1254/my-tlucalendar/actions)
+[![GitHub release](https://img.shields.io/github/v/release/Miho1254/my-tlucalendar?style=flat-square&label=Version)](https://github.com/Miho1254/my-tlucalendar/releases/latest)
 [![Platform](https://img.shields.io/badge/platform-Android-green?style=flat-square&logo=android)](https://github.com/Miho1254/my-tlucalendar/releases)
 
 <br />
