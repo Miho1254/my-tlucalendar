@@ -99,6 +99,7 @@ class _NoteBottomSheetState extends State<NoteBottomSheet> {
 
   Future<void> _deleteNote() async {
     if (_note != null) {
+      HapticFeedback.mediumImpact();
       final noteProvider = Provider.of<NoteProvider>(context, listen: false);
       await noteProvider.deleteNote(_note!.id);
       if (mounted) Navigator.pop(context);

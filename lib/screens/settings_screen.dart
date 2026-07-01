@@ -477,20 +477,40 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     horizontal: 16,
                     vertical: 24,
                   ),
-                  child: SizedBox(
-                    width: double.infinity,
-                    child: FButton(
-                      variant: FButtonVariant.destructive,
-                      onPress: () {
-                        authProvider.logout();
-                        Navigator.of(context).pushAndRemoveUntil(
-                          MaterialPageRoute(
-                            builder: (context) => const AppInitializer(),
-                          ),
-                          (route) => false,
-                        );
-                      },
-                      child: const Text('Đăng xuất'),
+                    child: SizedBox(
+                      width: double.infinity,
+                      child: FButton(
+                        variant: FButtonVariant.destructive,
+                        onPress: () {
+                          HapticFeedback.mediumImpact();
+                          showDialog(
+                            context: context,
+                            builder: (context) => AlertDialog(
+                              title: const Text('Đăng xuất?'),
+                              content: const Text('Bạn có chắc chắn muốn đăng xuất không?'),
+                              actions: [
+                                TextButton(
+                                  onPressed: () => Navigator.pop(context),
+                                  child: const Text('Hủy'),
+                                ),
+                                TextButton(
+                                  onPressed: () {
+                                    Navigator.pop(context);
+                                    authProvider.logout();
+                                    Navigator.of(context).pushAndRemoveUntil(
+                                      MaterialPageRoute(
+                                        builder: (context) => const AppInitializer(),
+                                      ),
+                                      (route) => false,
+                                    );
+                                  },
+                                  child: const Text('Đăng xuất'),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                        child: const Text('Đăng xuất'),
                     ),
                   ),
                 );

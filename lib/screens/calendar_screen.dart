@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import 'package:forui/forui.dart';
 import 'package:tlucalendar/providers/auth_provider.dart';
@@ -433,6 +434,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                   semester.semesterName.toReadableSemester,
                                 ),
                                 onPress: () async {
+                                  HapticFeedback.selectionClick();
                                   if (authProvider.accessToken != null) {
                                     await scheduleProvider.selectSemester(
                                       authProvider.accessToken!,
