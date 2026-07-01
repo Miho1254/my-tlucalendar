@@ -1,7 +1,7 @@
 name: tlucalendar
 description: "TLU Calendar for Thuy Loi University's students - free, open source, no ads"
 publish_to: "none"
-version: 2026.03.23
+version: 2026.07.02
 
 environment:
   sdk: ^3.11.5
