@@ -68,10 +68,16 @@ class UpdateService {
 
   static String _normalizeVersion(String tagName) {
     final trimmed = tagName.trim();
-    if (trimmed.startsWith('v') || trimmed.startsWith('V')) {
-      return trimmed.substring(1);
+    var version = trimmed;
+    if (version.startsWith('v') || version.startsWith('V')) {
+      version = version.substring(1);
     }
-    return trimmed;
+    // Strip commit SHA suffix (e.g. "2026.07.02+abc1234" → "2026.07.02")
+    final plusIndex = version.indexOf('+');
+    if (plusIndex != -1) {
+      version = version.substring(0, plusIndex);
+    }
+    return version;
   }
 
   static bool _isNewerVersion(String latest, String current) {
