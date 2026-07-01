@@ -13,6 +13,7 @@ import 'package:tlucalendar/widgets/course_card_optimized.dart';
 import 'package:tlucalendar/widgets/course_detail_sheet.dart';
 import 'package:tlucalendar/utils/semester_parser.dart';
 import 'package:tlucalendar/widgets/weekly_timetable_widget.dart';
+import 'package:tlucalendar/utils/vn_time.dart';
 
 bool _isSameDay(DateTime? a, DateTime? b) {
   if (a == null || b == null) return false;
@@ -38,7 +39,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   @override
   void initState() {
     super.initState();
-    _selectedDate = DateTime.now();
+    _selectedDate = VnTime.now();
     _calendarController = FGridCalendarController(
       initial: DateTime.utc(_selectedDate.year, _selectedDate.month),
     );
@@ -52,7 +53,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
   void _jumpToToday() {
     setState(() {
-      _selectedDate = DateTime.now();
+      _selectedDate = VnTime.now();
     });
     _calendarController.jumpToDayPicker(
       DateTime.utc(_selectedDate.year, _selectedDate.month),
@@ -80,7 +81,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
     int total = 0;
     int completed = 0;
-    final now = DateTime.now();
+    final now = VnTime.now();
 
     for (int i = 0; i < 7; i++) {
       final checkDate = startOfWeek.add(Duration(days: i));
@@ -229,7 +230,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 
   Widget _buildHeader(BuildContext context) {
-    final isToday = _isSameDay(_selectedDate, DateTime.now());
+    final isToday = _isSameDay(_selectedDate, VnTime.now());
 
     return Padding(
       padding: const EdgeInsets.all(16.0),
@@ -731,7 +732,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
               bool isPast = false;
               bool isCurrent = false;
-              final now = DateTime.now();
+              final now = VnTime.now();
               final isToday = _isSameDay(_selectedDate, now);
 
               if (_selectedDate.isBefore(

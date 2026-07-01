@@ -5,6 +5,7 @@ import 'package:tlucalendar/providers/schedule_provider.dart';
 import 'package:tlucalendar/widgets/course_detail_sheet.dart';
 import 'package:intl/intl.dart';
 import 'package:forui/forui.dart';
+import 'package:tlucalendar/utils/vn_time.dart';
 
 class WeeklyTimetableWidget extends StatelessWidget {
   final DateTime selectedDate;
@@ -110,7 +111,7 @@ class WeeklyTimetableWidget extends StatelessWidget {
     final days = List.generate(6, (i) => monday.add(Duration(days: i)));
 
     // Check if today is in this week
-    final now = DateTime.now();
+    final now = VnTime.now();
     final todayInWeek = days.any((d) =>
         d.year == now.year && d.month == now.month && d.day == now.day);
 

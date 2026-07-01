@@ -12,6 +12,7 @@ import 'package:forui/forui.dart';
 import 'package:forui_assets/forui_assets.dart';
 import 'package:tlucalendar/features/grades/presentation/pages/grade_screen.dart';
 import 'package:tlucalendar/features/grades/presentation/pages/analytics_screen.dart';
+import 'package:tlucalendar/utils/vn_time.dart';
 
 class TodayScreen extends StatefulWidget {
   const TodayScreen({super.key});
@@ -27,11 +28,11 @@ class _TodayScreenState extends State<TodayScreen> {
   @override
   void initState() {
     super.initState();
-    _currentDate = DateTime.now();
+    _currentDate = VnTime.now();
 
     // Update every minute (sufficient for class status updates)
     _timer = Timer.periodic(const Duration(minutes: 1), (timer) {
-      final now = DateTime.now();
+      final now = VnTime.now();
       if (now.day != _currentDate.day ||
           now.month != _currentDate.month ||
           now.year != _currentDate.year ||
@@ -50,7 +51,7 @@ class _TodayScreenState extends State<TodayScreen> {
   }
 
   String _getGreeting() {
-    final hour = DateTime.now().hour;
+    final hour = VnTime.now().hour;
     if (hour < 12) return 'Chào buổi sáng';
     if (hour < 18) return 'Chào buổi chiều';
     return 'Chào buổi tối';
@@ -58,7 +59,7 @@ class _TodayScreenState extends State<TodayScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final today = DateTime.now();
+    final today = VnTime.now();
     final dayName = _getDayOfWeek(today.weekday);
     final dateFormat = '$dayName, ${today.day}/${today.month}';
 
@@ -412,7 +413,7 @@ class _TodayScreenState extends State<TodayScreen> {
 
     if (startHour == null || endHour == null) return CourseStatus.future;
 
-    final now = DateTime.now();
+    final now = VnTime.now();
     // Parse "HH:mm"
     final startParts = startHour.startString.split(':');
     final endParts = endHour.endString.split(':');

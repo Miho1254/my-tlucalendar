@@ -3,6 +3,7 @@ import 'package:tlucalendar/services/log_service.dart';
 import 'package:tlucalendar/features/schedule/data/models/course_model.dart';
 import 'package:tlucalendar/features/schedule/domain/entities/course_hour.dart';
 import 'package:tlucalendar/features/exam/data/models/exam_dtos.dart' as Legacy;
+import 'package:tlucalendar/utils/vn_time.dart';
 
 class NotificationHelper {
   static final NotificationService _notificationService = NotificationService();
@@ -14,7 +15,7 @@ class NotificationHelper {
     required DateTime weekStartDate,
     required DateTime semesterStartDate,
   }) async {
-    final now = DateTime.now();
+    final now = VnTime.now();
 
     for (final course in courses) {
       if (!_isActiveOn(course, weekStartDate, semesterStartDate)) {
@@ -183,7 +184,7 @@ class NotificationHelper {
         minute,
       );
 
-      final now = DateTime.now();
+      final now = VnTime.now();
       if (examDateTime.year > now.year + 10 || examDateTime.year < 2020) {
         _log.log(
           'Invalid exam date year: ${examDateTime.year} - SKIPPING',

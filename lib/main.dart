@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:io';
 import 'package:provider/provider.dart';
 import 'package:timezone/data/latest.dart' as tz;
+import 'package:timezone/timezone.dart' as tz_util;
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/services.dart';
@@ -75,8 +76,9 @@ void main() async {
   // Initialize date formatting
   await initializeDateFormatting('vi', null);
 
-  // Initialize timezone database
+  // Initialize timezone database — force Vietnam time everywhere
   tz.initializeTimeZones();
+  tz_util.setLocalLocation(tz_util.getLocation('Asia/Ho_Chi_Minh'));
 
   if (!kIsWeb && (Platform.isAndroid || Platform.isIOS)) {
     // Initialize Daily Notification Service

@@ -11,6 +11,7 @@ import 'package:tlucalendar/widgets/empty_state_widget.dart';
 import 'package:tlucalendar/widgets/note_bottom_sheet.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:tlucalendar/utils/semester_parser.dart';
+import 'package:tlucalendar/utils/vn_time.dart';
 
 class ExamScheduleScreen extends StatefulWidget {
   const ExamScheduleScreen({super.key});
@@ -685,11 +686,7 @@ class _ExamScheduleScreenState extends State<ExamScheduleScreen> {
             int.parse(parts[1]),
             int.parse(parts[0]),
           );
-          final today = DateTime(
-            DateTime.now().year,
-            DateTime.now().month,
-            DateTime.now().day,
-          );
+          final today = VnTime.today();
           final diff = examDate.difference(today).inDays;
 
           if (diff < 0) {

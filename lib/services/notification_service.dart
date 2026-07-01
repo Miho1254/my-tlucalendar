@@ -11,6 +11,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:tlucalendar/features/schedule/domain/entities/course.dart';
 import 'package:tlucalendar/screens/home_shell.dart';
 import 'package:tlucalendar/features/exam/data/models/exam_dtos.dart' as Legacy;
+import 'package:tlucalendar/utils/vn_time.dart';
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
@@ -46,7 +47,7 @@ class NotificationService {
     if (_initialized) return;
 
     tz.initializeTimeZones();
-    tz.setLocalLocation(tz.getLocation('Asia/Bangkok'));
+    tz.setLocalLocation(tz.getLocation('Asia/Ho_Chi_Minh'));
 
     const androidSettings = AndroidInitializationSettings(
       '@mipmap/ic_launcher',
@@ -296,7 +297,7 @@ class NotificationService {
   Future<void> scheduleReminder(DateTime eventDate, String title, String body, String payload, {bool dayBefore = true}) async {
     if (!_initialized) await initialize();
 
-    final now = DateTime.now();
+    final now = VnTime.now();
     DateTime scheduleTime;
     
     if (dayBefore) {
@@ -330,7 +331,7 @@ class NotificationService {
   ) async {
     if (!_initialized) await initialize();
 
-    final now = DateTime.now();
+    final now = VnTime.now();
     if (classDateTime.isBefore(now)) return;
 
     final subjectName = course.courseName;
@@ -389,7 +390,7 @@ class NotificationService {
     final classDateTime = DateTime.fromMillisecondsSinceEpoch(
       model.triggerTime,
     );
-    final now = DateTime.now();
+    final now = VnTime.now();
     if (classDateTime.isBefore(now)) return;
 
     // C++: "Lịch học: %s"
@@ -464,7 +465,7 @@ class NotificationService {
   ) async {
     if (!_initialized) await initialize();
 
-    final now = DateTime.now();
+    final now = VnTime.now();
     // Schedule exactly 24 hours before class
     final reminderTime = classDateTime.subtract(const Duration(hours: 24));
     
@@ -492,7 +493,7 @@ class NotificationService {
   ) async {
     if (!_initialized) await initialize();
 
-    final now = DateTime.now();
+    final now = VnTime.now();
     if (examDateTime.isBefore(now)) return;
 
     final subjectName = examRoom.subjectName;
@@ -544,7 +545,7 @@ class NotificationService {
     required DateTime scheduledDate,
     String? payload,
   }) async {
-    final now = DateTime.now();
+    final now = VnTime.now();
     final maxYear = now.year + 10;
 
     if (scheduledDate.year > maxYear || scheduledDate.year < 2020) {

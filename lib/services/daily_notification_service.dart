@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:tlucalendar/services/log_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:tlucalendar/utils/vn_time.dart';
 
 /// Service for sending daily reminders about classes and exams
 /// Platform-specific implementation:
@@ -75,7 +76,7 @@ class DailyNotificationService {
 
   /// Schedule daily check at specific time (e.g., 7 AM every day)
   static Future<void> scheduleDailyCheck({int hour = 7, int minute = 0}) async {
-    final now = DateTime.now();
+    final now = VnTime.now();
     var scheduledDate = DateTime(now.year, now.month, now.day, hour, minute);
 
     if (scheduledDate.isBefore(now)) {
@@ -198,7 +199,7 @@ Future<void> _performDailyCheck() async {
       final hour = prefs.getInt('setting_daily_notif_hour') ?? 7;
       final minute = prefs.getInt('setting_daily_notif_minute') ?? 0;
 
-      final now = DateTime.now();
+      final now = VnTime.now();
       // Schedule for TOMORROW at specific time
       // Logic: This task runs AT the scheduled time (e.g. 7:00 today).
       // So we want to schedule for 7:00 tomorrow.
@@ -239,7 +240,7 @@ Future<void> _performDailyCheck() async {
   await notificationsPlugin.initialize(settings: initSettings);
 
   // Get today's date
-  final today = DateTime.now();
+  final today = VnTime.now();
   final todayStart = DateTime(today.year, today.month, today.day);
   final todayEnd = todayStart.add(const Duration(days: 1));
 
@@ -367,7 +368,7 @@ Future<void> _sendDailySummaryNotification(
   List<Map<String, dynamic>> classes,
   List<Map<String, dynamic>> exams,
 ) async {
-  final today = DateTime.now();
+  final today = VnTime.now();
   final dateStr = '${today.day}/${today.month}/${today.year}';
 
   // Build notification content
