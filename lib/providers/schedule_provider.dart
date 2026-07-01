@@ -45,6 +45,7 @@ class ScheduleProvider extends ChangeNotifier {
 
   bool _isOfflineMode = false;
   bool _isReconnecting = false;
+  bool _isRefreshing = false;
   bool _isLoading = false;
   String? _errorMessage;
 
@@ -59,6 +60,7 @@ class ScheduleProvider extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
   bool get isOfflineMode => _isOfflineMode;
   bool get isReconnecting => _isReconnecting;
+  bool get isRefreshing => _isRefreshing;
 
   // Clear data on logout
   void clearData() {
@@ -68,6 +70,7 @@ class ScheduleProvider extends ChangeNotifier {
     _currentSemester = null;
     _isOfflineMode = false;
     _isReconnecting = false;
+    _isRefreshing = false;
     _isLoading = false;
     _errorMessage = null;
     notifyListeners();
@@ -79,6 +82,7 @@ class ScheduleProvider extends ChangeNotifier {
     _errorMessage = null;
     _isOfflineMode = false;
     _isReconnecting = false;
+    _isRefreshing = false;
     notifyListeners();
 
     String currentToken = accessToken;
@@ -208,6 +212,7 @@ class ScheduleProvider extends ChangeNotifier {
       }
     }
     _isLoading = false;
+    _isReconnecting = false;
     notifyListeners();
   }
 
@@ -222,8 +227,10 @@ class ScheduleProvider extends ChangeNotifier {
         if (s.isCurrent) currents.add(s);
       }
     }
-    
-    Semester? foundCurrent = currents.where((s) => s.semesterName.toLowerCase().contains('học kỳ')).firstOrNull;
+
+    Semester? foundCurrent = currents
+        .where((s) => s.semesterName.toLowerCase().contains('học kỳ'))
+        .firstOrNull;
     foundCurrent ??= currents.firstOrNull;
 
     if (foundCurrent == null &&
@@ -252,23 +259,25 @@ class ScheduleProvider extends ChangeNotifier {
     }
   }
 
-  Future<void> loadSchedule(String accessToken, int semesterId, {bool forceRefresh = false}) async {
+  Future<void> loadSchedule(
+    String accessToken,
+    int semesterId, {
+    bool forceRefresh = false,
+  }) async {
     _errorMessage = null;
+    _isRefreshing = forceRefresh;
 
     if (!forceRefresh) {
       // Step 1: Load cache immediately without spinning
       final cacheResult = await scheduleRepository.getCachedCourses(semesterId);
-      cacheResult.fold(
-        (_) => null,
-        (cachedCourses) {
-          if (cachedCourses.isNotEmpty) {
-            _isOfflineMode = true;
-            _courses = cachedCourses;
-            _scheduleNotifications();
-            notifyListeners();
-          }
-        },
-      );
+      cacheResult.fold((_) => null, (cachedCourses) {
+        if (cachedCourses.isNotEmpty) {
+          _isOfflineMode = true;
+          _courses = cachedCourses;
+          _scheduleNotifications();
+          notifyListeners();
+        }
+      });
     }
 
     // Step 2: Show loading spinner if memory is empty OR forceRefresh is true
@@ -317,6 +326,7 @@ class ScheduleProvider extends ChangeNotifier {
       },
     );
     _isLoading = false;
+    _isRefreshing = false;
     notifyListeners();
   }
 

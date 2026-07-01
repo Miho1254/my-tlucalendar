@@ -1,4 +1,4 @@
-name: Build & Release in Main branch
+name: Release
 
 on:
   push:
@@ -11,20 +11,21 @@ permissions:
 jobs:
   build:
     if: "contains(github.event.head_commit.message, '[release]')"
-    name: Build & Release APK
+    name: Build signed Android release
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout
+        uses: actions/checkout@v4
 
       - name: Setup Java
-        uses: actions/setup-java@v3
+        uses: actions/setup-java@v4
         with:
           distribution: "temurin"
           java-version: "21"
 
       - name: Cache Gradle & Pub
-        uses: actions/cache@v3
+        uses: actions/cache@v4
         with:
           path: |
             ~/.pub-cache
@@ -39,32 +40,70 @@ jobs:
         with:
           channel: "stable"
 
+      - name: Read app version
+        id: version
+        run: |
+          VERSION="$(awk '/^version:/ {print $2; exit}' pubspec.yaml)"
+          SHORT_SHA="${GITHUB_SHA::7}"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=v$VERSION" >> "$GITHUB_OUTPUT"
+          echo "short_sha=$SHORT_SHA" >> "$GITHUB_OUTPUT"
+
       - name: Get dependencies
         run: flutter pub get
 
-      - name: Generate Temporary Keystore
+      - name: Decode release keystore
         run: |
-          keytool -genkey -v -keystore android/rel.jks -keyalg RSA -keysize 2048 -validity 10000 -alias my-key-alias -dname "CN=Unknown, OU=Unknown, O=Unknown, L=Unknown, ST=Unknown, C=Unknown" -storepass android -keypass android
+          test -n "${KEYSTORE_BASE64}" || (echo "Missing KEYSTORE_BASE64 secret" && exit 1)
+          echo "${KEYSTORE_BASE64}" | base64 --decode > android/rel.jks
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
 
       - name: Build APK (Release)
         env:
-          KEY_ALIAS: my-key-alias
-          KEY_PASSWORD: android
-          STORE_PASSWORD: android
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+          STORE_PASSWORD: ${{ secrets.STORE_PASSWORD }}
         run: flutter build apk --release --obfuscate --split-debug-info=build/app/outputs/symbols
 
-      - name: Generate Release Tag
-        id: tag
+      - name: Prepare release artifacts
         run: |
-          echo "release_tag=release_$(date +"%Y.%m.%d_%H-%M")" >> $GITHUB_OUTPUT
+          mkdir -p dist
+          cp build/app/outputs/flutter-apk/app-release.apk "dist/tlu-calendar-${{ steps.version.outputs.version }}.apk"
+          cd dist
+          sha256sum "tlu-calendar-${{ steps.version.outputs.version }}.apk" > "tlu-calendar-${{ steps.version.outputs.version }}.apk.sha256"
+
+      - name: Write release notes
+        run: |
+          {
+            echo "## TLU Calendar ${{ steps.version.outputs.version }}"
+            echo
+            echo "### Install"
+            echo "Download the APK below and install it on Android. If Android blocks the install, allow installs from your browser or file manager, then retry."
+            echo
+            echo "### Verify"
+            echo "A SHA-256 checksum is attached next to the APK:"
+            echo
+            echo '```text'
+            cat "dist/tlu-calendar-${{ steps.version.outputs.version }}.apk.sha256"
+            echo '```'
+            echo
+            echo "### Source"
+            echo 'This release is built from commit `${{ steps.version.outputs.short_sha }}`. GitHub also attaches the source archive for this tag.'
+            echo
+            echo "### Changes"
+            echo "This release enables GitHub-generated release notes for repository changes."
+          } > RELEASE_NOTES.md
 
       - name: Create Release
-        uses: softprops/action-gh-release@v1
+        uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ steps.tag.outputs.release_tag }}
-          name: "Bản phát hành mới: ${{ steps.tag.outputs.release_tag }}"
+          tag_name: ${{ steps.version.outputs.tag }}
+          name: "TLU Calendar ${{ steps.version.outputs.version }}"
           files: |
-            build/app/outputs/flutter-apk/app-release.apk
+            dist/tlu-calendar-${{ steps.version.outputs.version }}.apk
+            dist/tlu-calendar-${{ steps.version.outputs.version }}.apk.sha256
+          body_path: RELEASE_NOTES.md
           draft: false
           prerelease: false
           generate_release_notes: true

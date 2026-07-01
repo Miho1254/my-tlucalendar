@@ -122,7 +122,6 @@ class _LiquidGlassTabBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final bottomPadding = MediaQuery.paddingOf(context).bottom;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return ClipRect(
       child: BackdropFilter(
@@ -180,8 +179,6 @@ class _TabItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
     final activeColor = Theme.of(context).colorScheme.primary;
     final inactiveColor = Theme.of(context).colorScheme.onSurfaceVariant;
 

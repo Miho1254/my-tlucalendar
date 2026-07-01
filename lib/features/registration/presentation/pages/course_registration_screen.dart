@@ -266,8 +266,8 @@ class _CourseSubjectItemState extends State<_CourseSubjectItem> {
                             ),
                           ),
                           if (widget.course.isOverlap)
-                            const Padding(
-                              padding: EdgeInsets.only(left: 8.0),
+                            Padding(
+                              padding: const EdgeInsets.only(left: 8.0),
                               child: Tooltip(
                                 message: "Trùng tiết!",
                                 child: Text(
@@ -280,8 +280,8 @@ class _CourseSubjectItemState extends State<_CourseSubjectItem> {
                               ),
                             ),
                           if (!widget.course.isSelected && widget.course.isFull)
-                            const Padding(
-                              padding: EdgeInsets.only(left: 8.0),
+                            Padding(
+                              padding: const EdgeInsets.only(left: 8.0),
                               child: Tooltip(
                                 message: "Lớp đầy!",
                                 child: Text(

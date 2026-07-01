@@ -392,8 +392,6 @@ class NotificationService {
     final now = DateTime.now();
     if (classDateTime.isBefore(now)) return;
 
-    final subjectName =
-        model.title; // Adjusted: Native model title has "Lịch học: " prefix?
     // C++: "Lịch học: %s"
     // Dart existing: "Sắp đến giờ học môn: $subjectName"
     // We should probably just pass the raw Subject Name from C++ if we want to match exact text?

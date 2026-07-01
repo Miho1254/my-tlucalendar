@@ -11,7 +11,9 @@ import 'package:tlucalendar/screens/home_shell.dart';
 
 class SetupWizardScreen extends StatefulWidget {
   final bool isReauth;
-  const SetupWizardScreen({super.key, this.isReauth = false});
+  final VoidCallback? onFinished;
+
+  const SetupWizardScreen({super.key, this.isReauth = false, this.onFinished});
 
   @override
   State<SetupWizardScreen> createState() => _SetupWizardScreenState();
@@ -56,6 +58,8 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
   void _finishSetup() {
     if (widget.isReauth) {
       Navigator.of(context).pop();
+    } else if (widget.onFinished != null) {
+      widget.onFinished!();
     } else {
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (context) => const HomeShell()),
@@ -151,9 +155,9 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                       height: 4,
                       margin: EdgeInsets.only(right: index < 2 ? 8 : 0),
                       decoration: BoxDecoration(
-                        color: isActive 
-                          ? Theme.of(context).colorScheme.primary 
-                          : Theme.of(context).colorScheme.outlineVariant,
+                        color: isActive
+                            ? Theme.of(context).colorScheme.primary
+                            : Theme.of(context).colorScheme.outlineVariant,
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -161,7 +165,7 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                 }),
               ),
             ),
-            
+
             Expanded(
               child: PageView(
                 controller: _pageController,
@@ -182,14 +186,18 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
 
   Widget _buildLoginStep() {
     final colorScheme = Theme.of(context).colorScheme;
-    
+
     return SingleChildScrollView(
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const SizedBox(height: 24),
-          Icon(FLucideIcons.graduationCap, size: 64, color: colorScheme.primary),
+          Icon(
+            FLucideIcons.graduationCap,
+            size: 64,
+            color: colorScheme.primary,
+          ),
           const SizedBox(height: 24),
           Text(
             'Đăng nhập sinh viên',
@@ -202,7 +210,9 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
           const SizedBox(height: 8),
           Text(
             'Sử dụng tài khoản Quản lý đào tạo (CMC) để đồng bộ lịch học & lịch thi',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 48),
@@ -213,16 +223,25 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
               decoration: BoxDecoration(
                 color: colorScheme.errorContainer.withValues(alpha: 0.5),
                 borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: colorScheme.error.withValues(alpha: 0.3)),
+                border: Border.all(
+                  color: colorScheme.error.withValues(alpha: 0.3),
+                ),
               ),
               child: Row(
                 children: [
-                  Icon(FLucideIcons.alertCircle, color: colorScheme.error, size: 20),
+                  Icon(
+                    FLucideIcons.alertCircle,
+                    color: colorScheme.error,
+                    size: 20,
+                  ),
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
                       _errorMessage!,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: colorScheme.error, fontWeight: FontWeight.w500),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: colorScheme.error,
+                        fontWeight: FontWeight.w500,
+                      ),
                     ),
                   ),
                 ],
@@ -232,7 +251,9 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
           ],
 
           FTextField(
-            control: FTextFieldControl.managed(controller: _studentCodeController),
+            control: FTextFieldControl.managed(
+              controller: _studentCodeController,
+            ),
             hint: 'Mã sinh viên',
             keyboardType: TextInputType.number,
           ),
@@ -247,8 +268,12 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
             onPress: _isLoading ? null : _handleLogin,
             child: _isLoading
                 ? SizedBox(
-                    width: 20, height: 20,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: colorScheme.onPrimary),
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: colorScheme.onPrimary,
+                    ),
                   )
                 : const Text('Tiếp tục'),
           ),
@@ -261,13 +286,19 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                   children: [
                     LinearProgressIndicator(
                       value: authProvider.loginProgressPercent,
-                      backgroundColor: colorScheme.primary.withValues(alpha: 0.1),
+                      backgroundColor: colorScheme.primary.withValues(
+                        alpha: 0.1,
+                      ),
                       valueColor: AlwaysStoppedAnimation(colorScheme.primary),
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      authProvider.loginProgress.isEmpty ? 'Đang kết nối...' : authProvider.loginProgress,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+                      authProvider.loginProgress.isEmpty
+                          ? 'Đang kết nối...'
+                          : authProvider.loginProgress,
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ],
                 );
@@ -289,7 +320,11 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           const SizedBox(height: 24),
-          Icon(FLucideIcons.palette, size: 64, color: Theme.of(context).colorScheme.primary),
+          Icon(
+            FLucideIcons.palette,
+            size: 64,
+            color: Theme.of(context).colorScheme.primary,
+          ),
           const SizedBox(height: 24),
           Text(
             'Chọn giao diện',
@@ -302,7 +337,9 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
           const SizedBox(height: 8),
           Text(
             'Giao diện tối giúp tiết kiệm pin và thân thiện với mắt hơn vào ban đêm.',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Theme.of(context).colorScheme.onSurfaceVariant),
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
+            ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 48),
@@ -335,10 +372,7 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
           ),
 
           const Spacer(),
-          FButton(
-            onPress: _nextPage,
-            child: const Text('Tiếp tục'),
-          ),
+          FButton(onPress: _nextPage, child: const Text('Tiếp tục')),
         ],
       ),
     );
@@ -367,7 +401,9 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
           const SizedBox(height: 8),
           Text(
             'Nhận thông báo nhắc lịch học, lịch thi hằng ngày để không bỏ lỡ buổi học nào.',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: colorScheme.onSurfaceVariant),
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+              color: colorScheme.onSurfaceVariant,
+            ),
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: 48),
@@ -397,9 +433,14 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
                     }
                   },
                   suffix: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 12,
+                      vertical: 6,
+                    ),
                     decoration: BoxDecoration(
-                      color: colorScheme.primaryContainer.withValues(alpha: 0.5),
+                      color: colorScheme.primaryContainer.withValues(
+                        alpha: 0.5,
+                      ),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
@@ -429,10 +470,7 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
           ),
 
           const Spacer(),
-          FButton(
-            onPress: _finishSetup,
-            child: const Text('Hoàn tất'),
-          ),
+          FButton(onPress: _finishSetup, child: const Text('Hoàn tất')),
         ],
       ),
     );

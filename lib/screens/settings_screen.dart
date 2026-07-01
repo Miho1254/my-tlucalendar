@@ -3,7 +3,8 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
-import 'package:flutter/foundation.dart' show defaultTargetPlatform, TargetPlatform;
+import 'package:flutter/foundation.dart'
+    show defaultTargetPlatform, TargetPlatform;
 import 'package:url_launcher/url_launcher.dart';
 import 'package:forui/forui.dart';
 
@@ -14,6 +15,7 @@ import 'package:tlucalendar/providers/settings_provider.dart';
 import 'package:tlucalendar/screens/logs_screen.dart';
 import 'package:tlucalendar/utils/error_logger.dart';
 import 'package:tlucalendar/services/backup_service.dart';
+import 'package:tlucalendar/services/update_service.dart';
 import 'package:tlucalendar/screens/app_initializer.dart';
 import 'package:tlucalendar/utils/semester_parser.dart';
 
@@ -30,17 +32,100 @@ class SettingsScreen extends StatefulWidget {
 class _SettingsScreenState extends State<SettingsScreen> {
   int _versionTapCount = 0;
   bool _developerModeEnabled = false;
+  bool _isCheckingUpdate = false;
+  UpdateCheckResult? _updateCheckResult;
+  String? _updateCheckError;
+  String? _appVersionLabel;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _loadAppVersion();
+      _checkForUpdates(silent: true);
+    });
+  }
 
   void _handleVersionTap() {
     setState(() {
       _versionTapCount++;
       if (_versionTapCount >= 5 && !_developerModeEnabled) {
         _developerModeEnabled = true;
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Developer Mode Enabled')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('Developer Mode Enabled')));
       }
     });
+  }
+
+  Future<void> _loadAppVersion() async {
+    try {
+      final packageInfo = await PackageInfo.fromPlatform();
+      if (!mounted) return;
+      setState(() {
+        _appVersionLabel = '${packageInfo.version}+${packageInfo.buildNumber}';
+      });
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _appVersionLabel = 'không xác định';
+      });
+    }
+  }
+
+  Future<void> _checkForUpdates({bool silent = false}) async {
+    if (_isCheckingUpdate) return;
+
+    setState(() {
+      _isCheckingUpdate = true;
+      _updateCheckError = null;
+    });
+
+    try {
+      final result = await UpdateService.checkLatestRelease();
+      if (!mounted) return;
+      setState(() {
+        _updateCheckResult = result;
+      });
+
+      if (!silent && !result.hasUpdate) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Bạn đang dùng phiên bản mới nhất')),
+        );
+      }
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _updateCheckError = e.toString().replaceAll('Exception: ', '');
+      });
+
+      if (!silent) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Không thể kiểm tra cập nhật: $_updateCheckError'),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isCheckingUpdate = false);
+      }
+    }
+  }
+
+  Future<void> _openLatestRelease() async {
+    final url =
+        _updateCheckResult?.releaseUrl ??
+        'https://github.com/Miho1254/my-tlucalendar/releases/latest';
+    final uri = Uri.parse(url);
+    final opened = await launchUrl(uri, mode: LaunchMode.externalApplication);
+
+    if (!mounted) return;
+    if (!opened) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Không thể mở trang release')),
+      );
+    }
   }
 
   @override
@@ -52,19 +137,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
         padding: const EdgeInsets.only(bottom: 120),
         child: Column(
           children: [
-            FHeader(
-              title: const Text('Cài đặt'),
-            ),
+            FHeader(title: const Text('Cài đặt')),
             // Profile Header
             Consumer<AuthProvider>(
               builder: (context, authProvider, _) {
-                if (!authProvider.isLoggedIn || authProvider.currentUser == null) {
+                if (!authProvider.isLoggedIn ||
+                    authProvider.currentUser == null) {
                   return const SizedBox.shrink();
                 }
                 final user = authProvider.currentUser!;
-                final initials = user.fullName.trim().split(' ')
-                  .where((p) => p.isNotEmpty).map((p) => p[0].toUpperCase())
-                  .take(2).join();
+                final initials = user.fullName
+                    .trim()
+                    .split(' ')
+                    .where((p) => p.isNotEmpty)
+                    .map((p) => p[0].toUpperCase())
+                    .take(2)
+                    .join();
 
                 return Padding(
                   padding: const EdgeInsets.all(16),
@@ -80,10 +168,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         alignment: Alignment.center,
                         child: Text(
                           initials,
-                          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: colorScheme.onPrimary,
-                          ),
+                          style: Theme.of(context).textTheme.headlineMedium
+                              ?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: colorScheme.onPrimary,
+                              ),
                         ),
                       ),
                       const SizedBox(width: 16),
@@ -93,16 +182,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           children: [
                             Text(
                               user.fullName,
-                              style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
+                              style: Theme.of(context).textTheme.titleLarge
+                                  ?.copyWith(fontWeight: FontWeight.bold),
                             ),
                             const SizedBox(height: 4),
                             Text(
                               user.email,
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: colorScheme.onSurfaceVariant,
-                              ),
+                              style: Theme.of(context).textTheme.bodyMedium
+                                  ?.copyWith(
+                                    color: colorScheme.onSurfaceVariant,
+                                  ),
                             ),
                           ],
                         ),
@@ -117,7 +206,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
             Consumer<ThemeProvider>(
               builder: (context, themeProvider, _) {
                 return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
                   child: FTileGroup(
                     label: const Text('Giao diện'),
                     children: [
@@ -139,7 +231,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
             Consumer<SettingsProvider>(
               builder: (context, settings, _) {
                 return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 8,
+                  ),
                   child: FTileGroup(
                     label: const Text('Thông báo'),
                     children: [
@@ -161,20 +256,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               context: context,
                               initialTime: settings.dailyNotificationTime,
                             );
-                            if (time != null) settings.setDailyNotificationTime(time);
+                            if (time != null)
+                              settings.setDailyNotificationTime(time);
                           },
                           suffix: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 12,
+                              vertical: 6,
+                            ),
                             decoration: BoxDecoration(
-                              color: colorScheme.primaryContainer.withValues(alpha: 0.5),
+                              color: colorScheme.primaryContainer.withValues(
+                                alpha: 0.5,
+                              ),
                               borderRadius: BorderRadius.circular(8),
                             ),
                             child: Text(
                               settings.dailyNotificationTime.format(context),
-                              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: colorScheme.primary,
-                              ),
+                              style: Theme.of(context).textTheme.bodyMedium
+                                  ?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: colorScheme.primary,
+                                  ),
                             ),
                           ),
                         ),
@@ -220,24 +322,35 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         context: context,
                         builder: (context) => AlertDialog(
                           title: const Text('Khôi phục dữ liệu?'),
-                          content: const Text('Hành động này sẽ XÓA TOÀN BỘ dữ liệu hiện tại và thay thế bằng file sao lưu. Bạn có chắc chắn không?'),
+                          content: const Text(
+                            'Hành động này sẽ XÓA TOÀN BỘ dữ liệu hiện tại và thay thế bằng file sao lưu. Bạn có chắc chắn không?',
+                          ),
                           actions: [
-                            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Hủy')),
+                            TextButton(
+                              onPressed: () => Navigator.pop(context),
+                              child: const Text('Hủy'),
+                            ),
                             FButton(
                               variant: FButtonVariant.primary,
                               onPress: () async {
                                 Navigator.pop(context);
-                                final error = await BackupService.importDatabase();
+                                final error =
+                                    await BackupService.importDatabase();
                                 if (error == null) {
                                   if (context.mounted) {
                                     Navigator.of(context).pushAndRemoveUntil(
-                                      MaterialPageRoute(builder: (context) => const AppInitializer()),
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            const AppInitializer(),
+                                      ),
                                       (route) => false,
                                     );
                                   }
                                 } else {
                                   if (context.mounted) {
-                                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(error)));
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      SnackBar(content: Text(error)),
+                                    );
                                   }
                                 }
                               },
@@ -259,12 +372,46 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 label: const Text('Về ứng dụng'),
                 children: [
                   FTile(
+                    prefix: _isCheckingUpdate
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Icon(
+                            _updateCheckResult?.hasUpdate == true
+                                ? FLucideIcons.download
+                                : FLucideIcons.refreshCw,
+                          ),
+                    title: Text(
+                      _updateCheckResult?.hasUpdate == true
+                          ? 'Có bản cập nhật mới'
+                          : 'Kiểm tra cập nhật',
+                    ),
+                    subtitle: Text(_updateSubtitle),
+                    suffix: _updateCheckResult?.hasUpdate == true
+                        ? FBadge(
+                            child: Text(
+                              'v${_updateCheckResult!.latestVersion}',
+                            ),
+                          )
+                        : const Icon(FLucideIcons.chevronRight, size: 20),
+                    onPress: () {
+                      if (_updateCheckResult?.hasUpdate == true) {
+                        _openLatestRelease();
+                      } else {
+                        _checkForUpdates();
+                      }
+                    },
+                  ),
+                  FTile(
                     prefix: const Icon(FLucideIcons.bug),
                     title: const Text('Báo lỗi'),
                     subtitle: const Text('Gửi email kèm thông tin thiết bị'),
                     onPress: () => _sendBugReport(context),
                   ),
-                  if (defaultTargetPlatform == TargetPlatform.android || defaultTargetPlatform == TargetPlatform.iOS)
+                  if (defaultTargetPlatform == TargetPlatform.android ||
+                      defaultTargetPlatform == TargetPlatform.iOS)
                     FTile(
                       prefix: const Icon(FLucideIcons.info),
                       title: const Text('Thông báo bên thứ ba'),
@@ -276,7 +423,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       prefix: const Icon(FLucideIcons.terminal),
                       title: const Text('System Logs (Dev)'),
                       subtitle: const Text('Xem nhật ký hệ thống nội bộ'),
-                      onPress: () => Navigator.of(context).push(MaterialPageRoute(builder: (context) => const LogsScreen())),
+                      onPress: () => Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder: (context) => const LogsScreen(),
+                        ),
+                      ),
                       suffix: const Icon(FLucideIcons.chevronRight, size: 20),
                     ),
                 ],
@@ -300,13 +451,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Phiên bản 2026.07.01',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+                      'Phiên bản ${_appVersionLabel ?? 'đang tải...'}',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
                     ),
                     const SizedBox(height: 2),
                     Text(
                       'Bởi Nguyen Duy Thanh & Dang Quang Hien (Miho)',
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(color: colorScheme.onSurfaceVariant),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: colorScheme.onSurfaceVariant,
+                      ),
                     ),
                   ],
                 ),
@@ -318,7 +473,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
               builder: (context, authProvider, _) {
                 if (!authProvider.isLoggedIn) return const SizedBox.shrink();
                 return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 24,
+                  ),
                   child: SizedBox(
                     width: double.infinity,
                     child: FButton(
@@ -326,7 +484,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       onPress: () {
                         authProvider.logout();
                         Navigator.of(context).pushAndRemoveUntil(
-                          MaterialPageRoute(builder: (context) => const AppInitializer()),
+                          MaterialPageRoute(
+                            builder: (context) => const AppInitializer(),
+                          ),
                           (route) => false,
                         );
                       },
@@ -344,7 +504,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _sendBugReport(BuildContext context) async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final scheduleProvider = Provider.of<ScheduleProvider>(context, listen: false);
+    final scheduleProvider = Provider.of<ScheduleProvider>(
+      context,
+      listen: false,
+    );
 
     String appName = 'TLU Calendar';
     String appVersion = '2026.03.23';
@@ -361,20 +524,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
     try {
       if (Platform.isAndroid) {
         final info = await deviceInfo.androidInfo;
-        deviceDetails = 'Android ${info.version.release} - ${info.brand} ${info.model}';
+        deviceDetails =
+            'Android ${info.version.release} - ${info.brand} ${info.model}';
       } else if (Platform.isIOS) {
         final info = await deviceInfo.iosInfo;
-        deviceDetails = 'iOS ${info.systemVersion} - ${info.name} ${info.model}';
+        deviceDetails =
+            'iOS ${info.systemVersion} - ${info.name} ${info.model}';
       } else {
-        deviceDetails = '${Platform.operatingSystem} ${Platform.operatingSystemVersion}';
+        deviceDetails =
+            '${Platform.operatingSystem} ${Platform.operatingSystemVersion}';
       }
     } catch (e) {
       deviceDetails = 'Unknown device info: $e';
     }
 
-    final userId = authProvider.isLoggedIn ? (authProvider.currentUser?.studentId ?? 'unknown_user') : 'not_logged_in';
-    final userName = authProvider.isLoggedIn ? (authProvider.currentUser?.fullName ?? 'unknown') : 'not_logged_in';
-    final selectedSemester = scheduleProvider.selectedSemester?.semesterName.toReadableSemester ?? 'unknown';
+    final userId = authProvider.isLoggedIn
+        ? (authProvider.currentUser?.studentId ?? 'unknown_user')
+        : 'not_logged_in';
+    final userName = authProvider.isLoggedIn
+        ? (authProvider.currentUser?.fullName ?? 'unknown')
+        : 'not_logged_in';
+    final selectedSemester =
+        scheduleProvider.selectedSemester?.semesterName.toReadableSemester ??
+        'unknown';
 
     final errorLogger = ErrorLogger();
     final errorLogs = errorLogger.getFormattedErrors();
@@ -398,33 +570,56 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
     final encodedSubject = Uri.encodeComponent(subject);
     final encodedBody = Uri.encodeComponent(body.toString());
-    final mailto = 'mailto:thanhdz167@gmail.com?subject=$encodedSubject&body=$encodedBody';
+    final mailto =
+        'mailto:thanhdz167@gmail.com?subject=$encodedSubject&body=$encodedBody';
     final uri = Uri.parse(mailto);
 
     try {
       final success = await launchUrl(uri);
       if (!context.mounted) return;
       if (!success) {
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Không thể mở ứng dụng email')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Không thể mở ứng dụng email')),
+        );
       }
     } catch (e) {
       if (!context.mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Lỗi khi mở email: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Lỗi khi mở email: $e')));
     }
   }
 
-  static const MethodChannel _navigationChannel = MethodChannel('com.nekkochan.tlucalendar/navigation');
+  String get _updateSubtitle {
+    if (_isCheckingUpdate) return 'Đang kiểm tra GitHub Releases...';
+    if (_updateCheckError != null) return _updateCheckError!;
+
+    final result = _updateCheckResult;
+    if (result == null) return 'Tự kiểm tra bản mới từ GitHub Releases';
+    if (result.hasUpdate) {
+      return 'Đang dùng v${result.currentVersion}, mới nhất v${result.latestVersion}';
+    }
+    return 'Phiên bản hiện tại: v${result.currentVersion}';
+  }
+
+  static const MethodChannel _navigationChannel = MethodChannel(
+    'com.nekkochan.tlucalendar/navigation',
+  );
 
   Future<void> _viewThirdPartyNotices(BuildContext context) async {
     if (defaultTargetPlatform == TargetPlatform.android) {
       try {
-        final result = await _navigationChannel.invokeMethod('openLicenseActivity');
+        final result = await _navigationChannel.invokeMethod(
+          'openLicenseActivity',
+        );
         if (result != true) {
           throw Exception('Failed to open license activity');
         }
       } catch (e) {
         if (context.mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Không thể mở thông báo bên thứ ba: $e')));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Không thể mở thông báo bên thứ ba: $e')),
+          );
         }
       }
     }

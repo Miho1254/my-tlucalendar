@@ -15,6 +15,7 @@ class AppInitializer extends StatefulWidget {
 
 class _AppInitializerState extends State<AppInitializer> {
   bool _initialized = false;
+  bool _showSetupWizard = false;
 
   @override
   void initState() {
@@ -29,16 +30,18 @@ class _AppInitializerState extends State<AppInitializer> {
 
     if (!mounted) return;
 
-    // If logged in, initialize ScheduleProvider
     if (authProvider.isLoggedIn && authProvider.accessToken != null) {
       final scheduleProvider = Provider.of<ScheduleProvider>(
         context,
         listen: false,
       );
-      if (mounted) scheduleProvider.init(authProvider.accessToken!);
-
       final examProvider = Provider.of<ExamProvider>(context, listen: false);
-      if (mounted) examProvider.init(authProvider.accessToken!);
+
+      // Fire-and-forget: don't block UI while data loads in background
+      scheduleProvider.init(authProvider.accessToken!);
+      examProvider.init(authProvider.accessToken!);
+    } else {
+      _showSetupWizard = true;
     }
 
     if (mounted) {
@@ -56,8 +59,24 @@ class _AppInitializerState extends State<AppInitializer> {
     }
 
     final authProvider = Provider.of<AuthProvider>(context);
+    if (_showSetupWizard) {
+      return SetupWizardScreen(
+        onFinished: () {
+          setState(() {
+            _showSetupWizard = false;
+          });
+        },
+      );
+    }
+
     if (!authProvider.isLoggedIn) {
-      return const SetupWizardScreen();
+      return SetupWizardScreen(
+        onFinished: () {
+          setState(() {
+            _showSetupWizard = false;
+          });
+        },
+      );
     }
 
     return const HomeShell();

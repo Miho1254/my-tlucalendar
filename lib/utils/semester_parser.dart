@@ -16,7 +16,6 @@ class SemesterInfo {
     return 'Kỳ $semester, $startYear-$endYear';
   }
 
-  @override
   String get shortReadableName {
     final shortStart = startYear % 100;
     final shortEnd = endYear % 100;

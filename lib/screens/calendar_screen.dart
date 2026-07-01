@@ -29,7 +29,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
   late DateTime _selectedDate;
   int _calendarKey = 0;
   bool _isWeeklyView = false;
-  static final DateFormat _headerDateFormat = DateFormat('EEEE, d MMMM, yyyy', 'vi');
+  static final DateFormat _headerDateFormat = DateFormat(
+    'EEEE, d MMMM, yyyy',
+    'vi',
+  );
 
   @override
   void initState() {
@@ -52,14 +55,17 @@ class _CalendarScreenState extends State<CalendarScreen> {
     return 'Tuần: ${formatter.format(monday)} - ${formatter.format(saturday)}';
   }
 
-  List<Course> _getEventsForDay(DateTime day, ScheduleProvider scheduleProvider) {
+  List<Course> _getEventsForDay(
+    DateTime day,
+    ScheduleProvider scheduleProvider,
+  ) {
     return scheduleProvider.getActiveCourses(day);
   }
 
   double _calculateSurvivalProgress(ScheduleProvider provider) {
     final currentDay = _selectedDate.weekday;
     final startOfWeek = _selectedDate.subtract(Duration(days: currentDay - 1));
-    
+
     int total = 0;
     int completed = 0;
     final now = DateTime.now();
@@ -68,15 +74,23 @@ class _CalendarScreenState extends State<CalendarScreen> {
       final checkDate = startOfWeek.add(Duration(days: i));
       final coursesForDay = provider.getActiveCourses(checkDate);
       total += coursesForDay.length;
-      
+
       if (checkDate.isBefore(DateTime(now.year, now.month, now.day))) {
         completed += coursesForDay.length;
       } else if (_isSameDay(checkDate, now)) {
         for (final c in coursesForDay) {
-          final eHourObj = provider.courseHours.where((h) => h.indexNumber == c.endCourseHour).firstOrNull;
+          final eHourObj = provider.courseHours
+              .where((h) => h.indexNumber == c.endCourseHour)
+              .firstOrNull;
           if (eHourObj != null) {
             final endParts = eHourObj.endString.split(':');
-            final endTimeDt = DateTime(now.year, now.month, now.day, int.parse(endParts[0]), int.parse(endParts[1]));
+            final endTimeDt = DateTime(
+              now.year,
+              now.month,
+              now.day,
+              int.parse(endParts[0]),
+              int.parse(endParts[1]),
+            );
             if (now.isAfter(endTimeDt)) {
               completed += 1;
             }
@@ -84,16 +98,13 @@ class _CalendarScreenState extends State<CalendarScreen> {
         }
       }
     }
-    
+
     if (total == 0) return 1.0;
     return completed / total;
   }
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final isDark = theme.brightness == Brightness.dark;
-
     return FScaffold(
       child: SafeArea(
         child: RefreshIndicator(
@@ -120,9 +131,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 _buildCourseSliverList(context),
               ] else ...[
                 SliverToBoxAdapter(
-                  child: WeeklyTimetableWidget(
-                    selectedDate: _selectedDate,
-                  ),
+                  child: WeeklyTimetableWidget(selectedDate: _selectedDate),
                 ),
                 const SliverToBoxAdapter(child: SizedBox(height: 24)),
               ],
@@ -138,10 +147,16 @@ class _CalendarScreenState extends State<CalendarScreen> {
       builder: (context, provider, _) {
         final progress = _calculateSurvivalProgress(provider);
         final theme = Theme.of(context);
-        final isDark = theme.brightness == Brightness.dark;
-        
-        final totalThisWeek = [for (var i = 0; i < 7; i++) provider.getActiveCourses(_selectedDate.subtract(Duration(days: _selectedDate.weekday - 1)).add(Duration(days: i)))].fold<int>(0, (p, e) => p + e.length);
-        
+
+        final totalThisWeek = [
+          for (var i = 0; i < 7; i++)
+            provider.getActiveCourses(
+              _selectedDate
+                  .subtract(Duration(days: _selectedDate.weekday - 1))
+                  .add(Duration(days: i)),
+            ),
+        ].fold<int>(0, (p, e) => p + e.length);
+
         if (totalThisWeek == 0) return const SizedBox.shrink();
 
         final percent = (progress * 100).toInt();
@@ -156,17 +171,23 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    isDone ? "🎉 Đã sống sót qua tuần này!" : "Tiến độ sống sót tuần này",
+                    isDone
+                        ? "🎉 Đã sống sót qua tuần này!"
+                        : "Tiến độ sống sót tuần này",
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       fontWeight: FontWeight.bold,
-                      color: isDone ? theme.colorScheme.error : theme.colorScheme.onSurfaceVariant,
+                      color: isDone
+                          ? theme.colorScheme.error
+                          : theme.colorScheme.onSurfaceVariant,
                     ),
                   ),
                   Text(
                     "$percent%",
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       fontWeight: FontWeight.bold,
-                      color: isDone ? theme.colorScheme.error : theme.colorScheme.primary,
+                      color: isDone
+                          ? theme.colorScheme.error
+                          : theme.colorScheme.primary,
                     ),
                   ),
                 ],
@@ -179,7 +200,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   minHeight: 4,
                   backgroundColor: theme.colorScheme.surfaceContainerHighest,
                   valueColor: AlwaysStoppedAnimation<Color>(
-                    isDone ? theme.colorScheme.error : theme.colorScheme.primary,
+                    isDone
+                        ? theme.colorScheme.error
+                        : theme.colorScheme.primary,
                   ),
                 ),
               ),
@@ -191,7 +214,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
   }
 
   Widget _buildHeader(BuildContext context) {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
     final isToday = _isSameDay(_selectedDate, DateTime.now());
 
     return Padding(
@@ -208,10 +230,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     Expanded(
                       child: Text(
                         'Lịch học',
-                        style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                          color: Theme.of(context).colorScheme.onSurface,
-                        ),
+                        style: Theme.of(context).textTheme.headlineMedium
+                            ?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -257,8 +280,9 @@ class _CalendarScreenState extends State<CalendarScreen> {
                           FButton.icon(
                             onPress: () {
                               setState(() {
-                                _selectedDate =
-                                    _selectedDate.subtract(const Duration(days: 7));
+                                _selectedDate = _selectedDate.subtract(
+                                  const Duration(days: 7),
+                                );
                               });
                             },
                             variant: FButtonVariant.ghost,
@@ -267,17 +291,21 @@ class _CalendarScreenState extends State<CalendarScreen> {
                           const SizedBox(width: 4),
                           Text(
                             _getWeekRangeString(_selectedDate),
-                            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                            style: Theme.of(context).textTheme.bodyLarge
+                                ?.copyWith(
                                   fontWeight: FontWeight.bold,
-                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
                                 ),
                           ),
                           const SizedBox(width: 4),
                           FButton.icon(
                             onPress: () {
                               setState(() {
-                                _selectedDate =
-                                    _selectedDate.add(const Duration(days: 7));
+                                _selectedDate = _selectedDate.add(
+                                  const Duration(days: 7),
+                                );
                               });
                             },
                             variant: FButtonVariant.ghost,
@@ -288,8 +316,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
                     : Text(
                         _headerDateFormat.format(_selectedDate),
                         style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
-                            ),
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
                       ),
               ],
             ),
@@ -307,11 +335,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
         }
 
         final selectedSemester = scheduleProvider.selectedSemester;
-        final theme = Theme.of(context);
-        final isDark = theme.brightness == Brightness.dark;
 
         return FButton(
-          onPress: () => _showSemesterPicker(context, scheduleProvider, authProvider),
+          onPress: () =>
+              _showSemesterPicker(context, scheduleProvider, authProvider),
           variant: FButtonVariant.secondary,
           prefix: const Icon(Icons.calendar_today, size: 16),
           child: Text(
@@ -326,14 +353,17 @@ class _CalendarScreenState extends State<CalendarScreen> {
     );
   }
 
-  void _showSemesterPicker(BuildContext context, ScheduleProvider scheduleProvider, AuthProvider authProvider) {
+  void _showSemesterPicker(
+    BuildContext context,
+    ScheduleProvider scheduleProvider,
+    AuthProvider authProvider,
+  ) {
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent, // True dark via container inside
       builder: (context) {
         final theme = Theme.of(context);
-        final isDark = theme.brightness == Brightness.dark;
-        
+
         return Container(
           decoration: BoxDecoration(
             color: Theme.of(context).colorScheme.surface,
@@ -349,13 +379,17 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 height: 4,
                 margin: const EdgeInsets.only(bottom: 20),
                 decoration: BoxDecoration(
-                  color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.5),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.outline.withValues(alpha: 0.5),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
               Text(
                 'Chọn học kỳ',
-                style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
               ),
               const SizedBox(height: 16),
               Flexible(
@@ -363,14 +397,22 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   shrinkWrap: true,
                   itemCount: scheduleProvider.schoolYears.length,
                   itemBuilder: (context, index) {
-                    final year = scheduleProvider.schoolYears[scheduleProvider.schoolYears.length - 1 - index];
+                    final year =
+                        scheduleProvider.schoolYears[scheduleProvider
+                                .schoolYears
+                                .length -
+                            1 -
+                            index];
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 12.0),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Padding(
-                            padding: const EdgeInsets.only(left: 8.0, bottom: 8.0),
+                            padding: const EdgeInsets.only(
+                              left: 8.0,
+                              bottom: 8.0,
+                            ),
                             child: Text(
                               year.name,
                               style: theme.textTheme.bodySmall?.copyWith(
@@ -380,21 +422,39 @@ class _CalendarScreenState extends State<CalendarScreen> {
                             ),
                           ),
                           FTileGroup(
-                            children: year.semesters.reversed.map<FTile>((semester) {
-                              final isSelected = semester.id == scheduleProvider.selectedSemester?.id;
+                            children: year.semesters.reversed.map<FTile>((
+                              semester,
+                            ) {
+                              final isSelected =
+                                  semester.id ==
+                                  scheduleProvider.selectedSemester?.id;
                               return FTile(
-                                title: Text(semester.semesterName.toReadableSemester),
-                                onPress: () {
+                                title: Text(
+                                  semester.semesterName.toReadableSemester,
+                                ),
+                                onPress: () async {
                                   if (authProvider.accessToken != null) {
-                                    scheduleProvider.selectSemester(
+                                    await scheduleProvider.selectSemester(
                                       authProvider.accessToken!,
                                       semester.id,
                                     );
+                                    if (mounted) {
+                                      setState(() {
+                                        _selectedDate =
+                                            DateTime.fromMillisecondsSinceEpoch(
+                                              semester.startDate,
+                                            );
+                                        _calendarKey++;
+                                      });
+                                    }
                                   }
-                                  Navigator.pop(context);
+                                  if (context.mounted) Navigator.pop(context);
                                 },
-                                suffix: isSelected 
-                                    ? Icon(Icons.check, color: theme.colorScheme.primary)
+                                suffix: isSelected
+                                    ? Icon(
+                                        Icons.check,
+                                        color: theme.colorScheme.primary,
+                                      )
                                     : null,
                               );
                             }).toList(),
@@ -415,14 +475,35 @@ class _CalendarScreenState extends State<CalendarScreen> {
   Widget _buildOfflineIndicator(BuildContext context) {
     return Consumer<ScheduleProvider>(
       builder: (context, provider, _) {
+        if (provider.isRefreshing) {
+          return Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 8.0,
+            ),
+            child: FAlert(
+              title: const Text('Đang lấy dữ liệu mới...'),
+              icon: const SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              ),
+            ),
+          );
+        }
+
         if (provider.isReconnecting) {
           return Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 16.0,
+              vertical: 8.0,
+            ),
             child: FAlert(
               title: const Text('Đang kết nối lại...'),
               icon: const SizedBox(
-                width: 16, height: 16, 
-                child: CircularProgressIndicator(strokeWidth: 2)
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(strokeWidth: 2),
               ),
             ),
           );
@@ -455,97 +536,123 @@ class _CalendarScreenState extends State<CalendarScreen> {
 
             return FCalendar.grid(
               style: FCalendarStyleDelta.delta(
-                decoration: const DecorationDelta.value(BoxDecoration(color: Colors.transparent)),
+                decoration: const DecorationDelta.value(
+                  BoxDecoration(color: Colors.transparent),
+                ),
                 padding: const EdgeInsetsGeometryDelta.value(EdgeInsets.zero),
                 dayPickerStyle: FCalendarDayPickerStyleDelta.delta(
                   daySize: Size(daySize, daySize),
                 ),
               ),
-                  key: ValueKey(_calendarKey),
-                  selectionControl: FDateSelectionControl.lifted(
-                    selected: (date) => _isSameDay(date, _selectedDate),
-                    select: (date) {
-                      setState(() { _selectedDate = date; });
-                    },
-                  ),
-                  dayBuilder: (context, styles, localizations, date, variants) {
-                    final events = _getEventsForDay(date, provider);
-                    final hasExam = events.any((e) => e.courseName.toLowerCase().contains("thi ") || e.status.toLowerCase().contains("exam"));
-                    final noteProvider = context.watch<NoteProvider>();
-                    final hasNote = events.any((e) {
-                      final sHourObj = provider.courseHours.where((h) => h.indexNumber == e.startCourseHour).firstOrNull;
-                      final classDate = DateTime(
-                        date.year,
-                        date.month,
-                        date.day,
-                        sHourObj != null ? int.parse(sHourObj.startString.split(':')[0]) : 0,
-                        sHourObj != null ? int.parse(sHourObj.startString.split(':')[1]) : 0,
-                      );
-                      return noteProvider.hasNoteFor('course_${e.id}_${classDate.millisecondsSinceEpoch}');
-                    });
-                    
-                    final isToday = variants.contains(FCalendarDayVariant.today);
-                    final Set<FCalendarDayVariant> modifiedVariants = Set.from(variants);
-                    if (isToday) {
-                      modifiedVariants.remove(FCalendarDayVariant.today);
-                    }
+              key: ValueKey(_calendarKey),
+              selectionControl: FDateSelectionControl.lifted(
+                selected: (date) => _isSameDay(date, _selectedDate),
+                select: (date) {
+                  setState(() {
+                    _selectedDate = date;
+                  });
+                },
+              ),
+              dayBuilder: (context, styles, localizations, date, variants) {
+                final events = _getEventsForDay(date, provider);
+                final hasExam = events.any(
+                  (e) =>
+                      e.courseName.toLowerCase().contains("thi ") ||
+                      e.status.toLowerCase().contains("exam"),
+                );
+                final noteProvider = context.watch<NoteProvider>();
+                final hasNote = events.any((e) {
+                  final sHourObj = provider.courseHours
+                      .where((h) => h.indexNumber == e.startCourseHour)
+                      .firstOrNull;
+                  final classDate = DateTime(
+                    date.year,
+                    date.month,
+                    date.day,
+                    sHourObj != null
+                        ? int.parse(sHourObj.startString.split(':')[0])
+                        : 0,
+                    sHourObj != null
+                        ? int.parse(sHourObj.startString.split(':')[1])
+                        : 0,
+                  );
+                  return noteProvider.hasNoteFor(
+                    'course_${e.id}_${classDate.millisecondsSinceEpoch}',
+                  );
+                });
 
-                    Widget dayWidget = FCalendar.defaultDayBuilder(context, styles, localizations, date, modifiedVariants);
-                    
-                    if (isToday) {
-                      dayWidget = Container(
-                        decoration: BoxDecoration(
-                          border: Border.all(
-                            color: theme.colorScheme.primary.withValues(alpha: 0.5),
-                            width: 1.5,
+                final isToday = variants.contains(FCalendarDayVariant.today);
+                final Set<FCalendarDayVariant> modifiedVariants = Set.from(
+                  variants,
+                );
+                if (isToday) {
+                  modifiedVariants.remove(FCalendarDayVariant.today);
+                }
+
+                Widget dayWidget = FCalendar.defaultDayBuilder(
+                  context,
+                  styles,
+                  localizations,
+                  date,
+                  modifiedVariants,
+                );
+
+                if (isToday) {
+                  dayWidget = Container(
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: theme.colorScheme.primary.withValues(alpha: 0.5),
+                        width: 1.5,
+                      ),
+                      shape: BoxShape.circle,
+                    ),
+                    margin: const EdgeInsets.all(4),
+                    alignment: Alignment.center,
+                    child: dayWidget,
+                  );
+                }
+
+                if (events.isEmpty && !hasNote) {
+                  return dayWidget;
+                }
+
+                return Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    dayWidget,
+                    if (events.isNotEmpty)
+                      Positioned(
+                        bottom: 6,
+                        child: Container(
+                          width: 6,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            color: hasExam
+                                ? theme.colorScheme.error
+                                : theme.colorScheme.primary,
+                            shape: BoxShape.circle,
                           ),
-                          shape: BoxShape.circle,
                         ),
-                        margin: const EdgeInsets.all(4),
-                        alignment: Alignment.center,
-                        child: dayWidget,
-                      );
-                    }
-
-                    if (events.isEmpty && !hasNote) {
-                      return dayWidget;
-                    }
-
-                    return Stack(
-                      alignment: Alignment.center,
-                      children: [
-                        dayWidget,
-                        if (events.isNotEmpty)
-                          Positioned(
-                            bottom: 6,
-                            child: Container(
-                              width: 6,
-                              height: 6,
-                              decoration: BoxDecoration(
-                                color: hasExam ? theme.colorScheme.error : theme.colorScheme.primary,
-                                shape: BoxShape.circle,
-                              ),
-                            ),
+                      ),
+                    if (hasNote)
+                      Positioned(
+                        top: 8,
+                        right: 8,
+                        child: Container(
+                          width: 6,
+                          height: 6,
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.error,
+                            shape: BoxShape.circle,
                           ),
-                        if (hasNote)
-                          Positioned(
-                            top: 8,
-                            right: 8,
-                            child: Container(
-                              width: 6,
-                              height: 6,
-                              decoration: BoxDecoration(
-                                color: theme.colorScheme.error,
-                                shape: BoxShape.circle,
-                              ),
-                            ),
-                          ),
-                      ],
-                    );
-                  },
+                        ),
+                      ),
+                  ],
                 );
               },
             );
+          },
+        );
       },
     );
   }
@@ -559,8 +666,11 @@ class _CalendarScreenState extends State<CalendarScreen> {
           return const SliverToBoxAdapter(child: ScheduleSkeleton());
         }
 
-        if (scheduleProvider.errorMessage != null && scheduleProvider.courses.isEmpty) {
-          return SliverToBoxAdapter(child: _buildErrorState(context, scheduleProvider));
+        if (scheduleProvider.errorMessage != null &&
+            scheduleProvider.courses.isEmpty) {
+          return SliverToBoxAdapter(
+            child: _buildErrorState(context, scheduleProvider),
+          );
         }
 
         final courses = scheduleProvider.getActiveCourses(_selectedDate);
@@ -585,8 +695,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
               String startTime = '${course.startCourseHour}';
               String endTime = '${course.endCourseHour}';
 
-              final sHourObj = scheduleProvider.courseHours.where((h) => h.indexNumber == course.startCourseHour).firstOrNull;
-              final eHourObj = scheduleProvider.courseHours.where((h) => h.indexNumber == course.endCourseHour).firstOrNull;
+              final sHourObj = scheduleProvider.courseHours
+                  .where((h) => h.indexNumber == course.startCourseHour)
+                  .firstOrNull;
+              final eHourObj = scheduleProvider.courseHours
+                  .where((h) => h.indexNumber == course.endCourseHour)
+                  .firstOrNull;
 
               if (sHourObj != null) startTime = sHourObj.startString;
               if (eHourObj != null) endTime = eHourObj.endString;
@@ -598,18 +712,33 @@ class _CalendarScreenState extends State<CalendarScreen> {
               final now = DateTime.now();
               final isToday = _isSameDay(_selectedDate, now);
 
-              if (_selectedDate.isBefore(DateTime(now.year, now.month, now.day))) {
+              if (_selectedDate.isBefore(
+                DateTime(now.year, now.month, now.day),
+              )) {
                 isPast = true;
               } else if (isToday) {
                 if (sHourObj != null && eHourObj != null) {
                   final startParts = sHourObj.startString.split(':');
                   final endParts = eHourObj.endString.split(':');
-                  final startTimeDt = DateTime(now.year, now.month, now.day, int.parse(startParts[0]), int.parse(startParts[1]));
-                  final endTimeDt = DateTime(now.year, now.month, now.day, int.parse(endParts[0]), int.parse(endParts[1]));
+                  final startTimeDt = DateTime(
+                    now.year,
+                    now.month,
+                    now.day,
+                    int.parse(startParts[0]),
+                    int.parse(startParts[1]),
+                  );
+                  final endTimeDt = DateTime(
+                    now.year,
+                    now.month,
+                    now.day,
+                    int.parse(endParts[0]),
+                    int.parse(endParts[1]),
+                  );
 
                   if (now.isAfter(endTimeDt)) {
                     isPast = true;
-                  } else if (now.isAfter(startTimeDt) && now.isBefore(endTimeDt)) {
+                  } else if (now.isAfter(startTimeDt) &&
+                      now.isBefore(endTimeDt)) {
                     isCurrent = true;
                   }
                 }
@@ -620,8 +749,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 _selectedDate.year,
                 _selectedDate.month,
                 _selectedDate.day,
-                sHourObj != null ? int.parse(sHourObj.startString.split(':')[0]) : 0,
-                sHourObj != null ? int.parse(sHourObj.startString.split(':')[1]) : 0,
+                sHourObj != null
+                    ? int.parse(sHourObj.startString.split(':')[0])
+                    : 0,
+                sHourObj != null
+                    ? int.parse(sHourObj.startString.split(':')[1])
+                    : 0,
               );
 
               return CourseCardOptimized(
@@ -684,19 +817,28 @@ class _CalendarScreenState extends State<CalendarScreen> {
               ),
               const SizedBox(height: 24),
               FButton(
-                onPress: _isRetryOnCooldown ? null : () async {
-                  setState(() => _isRetryOnCooldown = true);
-                  final auth = context.read<AuthProvider>();
-                  if (auth.accessToken != null && provider.currentSemester != null) {
-                    await provider.loadSchedule(
-                      auth.accessToken!,
-                      provider.currentSemester!.id,
-                    );
-                  }
-                  await Future.delayed(const Duration(seconds: 5));
-                  if (mounted) setState(() => _isRetryOnCooldown = false);
-                },
-                prefix: _isRetryOnCooldown ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2)) : const Icon(Icons.refresh),
+                onPress: _isRetryOnCooldown
+                    ? null
+                    : () async {
+                        setState(() => _isRetryOnCooldown = true);
+                        final auth = context.read<AuthProvider>();
+                        if (auth.accessToken != null &&
+                            provider.currentSemester != null) {
+                          await provider.loadSchedule(
+                            auth.accessToken!,
+                            provider.currentSemester!.id,
+                          );
+                        }
+                        await Future.delayed(const Duration(seconds: 5));
+                        if (mounted) setState(() => _isRetryOnCooldown = false);
+                      },
+                prefix: _isRetryOnCooldown
+                    ? const SizedBox(
+                        width: 16,
+                        height: 16,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : const Icon(Icons.refresh),
                 child: Text(_isRetryOnCooldown ? 'Vui lòng chờ...' : 'Thử lại'),
               ),
             ],

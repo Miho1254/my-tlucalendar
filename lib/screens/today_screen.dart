@@ -105,6 +105,7 @@ class _TodayScreenState extends State<TodayScreen> {
                   await scheduleProvider.loadSchedule(
                     authProvider.accessToken!,
                     scheduleProvider.currentSemester!.id,
+                    forceRefresh: true,
                   );
                 }
               },
@@ -112,13 +113,35 @@ class _TodayScreenState extends State<TodayScreen> {
                 physics: const AlwaysScrollableScrollPhysics(),
                 slivers: [
                   // Reconnecting Banner
+                  if (scheduleProvider.isRefreshing)
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
+                        child: FAlert(
+                          icon: const SizedBox(
+                            width: 14,
+                            height: 14,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          ),
+                          title: const Text('Đang lấy dữ liệu mới...'),
+                        ),
+                      ),
+                    ),
+
                   if (scheduleProvider.isReconnecting)
                     SliverToBoxAdapter(
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
                         child: FAlert(
                           icon: const SizedBox(
-                            width: 14, height: 14,
+                            width: 14,
+                            height: 14,
                             child: CircularProgressIndicator(strokeWidth: 2),
                           ),
                           title: const Text('Đang thử kết nối lại...'),
@@ -127,14 +150,20 @@ class _TodayScreenState extends State<TodayScreen> {
                     ),
 
                   // Offline Banner
-                  if (scheduleProvider.isOfflineMode)
+                  if (scheduleProvider.isOfflineMode &&
+                      !scheduleProvider.isRefreshing)
                     SliverToBoxAdapter(
                       child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 8,
+                        ),
                         child: FAlert(
                           variant: FAlertVariant.destructive,
                           icon: const Icon(Icons.cloud_off, size: 16),
-                          title: const Text('Mất kết nối. Đang hiển thị lịch đã lưu.'),
+                          title: const Text(
+                            'Mất kết nối. Đang hiển thị lịch đã lưu.',
+                          ),
                         ),
                       ),
                     ),
@@ -148,8 +177,11 @@ class _TodayScreenState extends State<TodayScreen> {
                         children: [
                           Text(
                             '${_getGreeting()},\n$userName! 👋',
-                            style: Theme.of(context).textTheme.displayLarge?.copyWith(
-                                  color: Theme.of(context).colorScheme.onSurface,
+                            style: Theme.of(context).textTheme.displayLarge
+                                ?.copyWith(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurface,
                                 ),
                           ),
                           const SizedBox(height: 8),
@@ -157,8 +189,11 @@ class _TodayScreenState extends State<TodayScreen> {
                             todaySchedules.isEmpty
                                 ? 'Hôm nay bạn được nghỉ ngơi thoải mái!'
                                 : 'Hôm nay chiến ${todaySchedules.length} môn nhé.',
-                            style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            style: Theme.of(context).textTheme.bodyLarge
+                                ?.copyWith(
+                                  color: Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
                                 ),
                           ),
                         ],
@@ -169,17 +204,26 @@ class _TodayScreenState extends State<TodayScreen> {
                   // Date Chip
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 8,
+                      ),
                       child: Align(
                         alignment: Alignment.centerLeft,
                         child: FCard.raw(
                           child: Padding(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 14,
+                              vertical: 8,
+                            ),
                             child: Text(
                               dateFormat,
-                              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                              style: Theme.of(context).textTheme.labelLarge
+                                  ?.copyWith(
                                     fontWeight: FontWeight.w600,
-                                    color: Theme.of(context).colorScheme.onSurface,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurface,
                                   ),
                             ),
                           ),
@@ -193,7 +237,10 @@ class _TodayScreenState extends State<TodayScreen> {
                   // Utilities Section
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 24,
+                        vertical: 8,
+                      ),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -201,43 +248,72 @@ class _TodayScreenState extends State<TodayScreen> {
                             padding: const EdgeInsets.only(left: 8, bottom: 8),
                             child: Text(
                               'Tiện ích',
-                              style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                              style: Theme.of(context).textTheme.titleSmall
+                                  ?.copyWith(
                                     fontWeight: FontWeight.bold,
-                                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                                    color: Theme.of(
+                                      context,
+                                    ).colorScheme.onSurfaceVariant,
                                   ),
                             ),
                           ),
                           FTileGroup(
                             children: [
                               FTile(
-                                prefix: Icon(FLucideIcons.graduationCap, color: Theme.of(context).colorScheme.primary),
+                                prefix: Icon(
+                                  FLucideIcons.graduationCap,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
                                 title: const Text('Tra cứu điểm'),
-                                suffix: const Icon(FLucideIcons.chevronRight, size: 20),
+                                suffix: const Icon(
+                                  FLucideIcons.chevronRight,
+                                  size: 20,
+                                ),
                                 onPress: () {
                                   Navigator.push(
                                     context,
-                                    MaterialPageRoute(builder: (_) => const GradeScreen()),
+                                    MaterialPageRoute(
+                                      builder: (_) => const GradeScreen(),
+                                    ),
                                   );
                                 },
                               ),
                               FTile(
-                                prefix: Icon(FLucideIcons.pieChart, color: Theme.of(context).colorScheme.primary),
+                                prefix: Icon(
+                                  FLucideIcons.pieChart,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
                                 title: const Text('Phân tích học tập'),
-                                suffix: const Icon(FLucideIcons.chevronRight, size: 20),
+                                suffix: const Icon(
+                                  FLucideIcons.chevronRight,
+                                  size: 20,
+                                ),
                                 onPress: () {
                                   Navigator.push(
                                     context,
-                                    MaterialPageRoute(builder: (_) => const AnalyticsScreen()),
+                                    MaterialPageRoute(
+                                      builder: (_) => const AnalyticsScreen(),
+                                    ),
                                   );
                                 },
                               ),
                               FTile(
-                                prefix: Icon(FLucideIcons.bookOpen, color: Theme.of(context).colorScheme.primary),
+                                prefix: Icon(
+                                  FLucideIcons.bookOpen,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
                                 title: const Text('Đăng ký học'),
-                                suffix: const Icon(FLucideIcons.chevronRight, size: 20),
+                                suffix: const Icon(
+                                  FLucideIcons.chevronRight,
+                                  size: 20,
+                                ),
                                 onPress: () {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(content: Text('Tính năng đang phát triển')),
+                                    const SnackBar(
+                                      content: Text(
+                                        'Tính năng đang phát triển',
+                                      ),
+                                    ),
                                   );
                                 },
                               ),
@@ -258,7 +334,8 @@ class _TodayScreenState extends State<TodayScreen> {
                         child: EmptyStateWidget(
                           icon: FLucideIcons.coffee,
                           title: 'Hôm nay trống lịch!',
-                          description: 'Tuyệt vời! Tắt báo thức và ngủ tiếp thôi, hoặc xách cơ ra làm vài đường!',
+                          description:
+                              'Tuyệt vời! Tắt báo thức và ngủ tiếp thôi, hoặc xách cơ ra làm vài đường!',
                         ),
                       ),
                     )
@@ -303,7 +380,7 @@ class _TodayScreenState extends State<TodayScreen> {
                         },
                       ),
                     ),
-                    
+
                   // Add bottom safe area padding (automatically accounts for the Liquid Glass tab bar)
                   // plus a small clearance to prevent the last item from touching the tab bar.
                   const SliverSafeArea(

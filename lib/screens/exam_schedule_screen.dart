@@ -125,7 +125,20 @@ class _ExamScheduleScreenState extends State<ExamScheduleScreen> {
         if (examProvider.registerPeriods.isEmpty && !examProvider.isLoading) {
           return FScaffold(
             header: const FHeader.nested(title: Text('Lịch thi')),
-            child: _buildNoExams(),
+            child: RefreshIndicator(
+              onRefresh: () async {
+                await _loadData();
+              },
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                children: [
+                  SizedBox(
+                    height: MediaQuery.of(context).size.height * 0.6,
+                    child: _buildNoExams(),
+                  ),
+                ],
+              ),
+            ),
           );
         }
 
@@ -162,7 +175,8 @@ class _ExamScheduleScreenState extends State<ExamScheduleScreen> {
     ExamProvider examProvider,
   ) {
     final selectedSemesterName =
-        examProvider.selectedSemester?.semesterName.toReadableSemester ?? 'Chọn học kỳ';
+        examProvider.selectedSemester?.semesterName.toReadableSemester ??
+        'Chọn học kỳ';
 
     return RefreshIndicator(
       onRefresh: () async {
@@ -219,7 +233,11 @@ class _ExamScheduleScreenState extends State<ExamScheduleScreen> {
                       suffix: const Icon(Icons.keyboard_arrow_down),
                       onPress: () {
                         HapticFeedback.lightImpact();
-                        _showFilterBottomSheet(context, examProvider, authProvider);
+                        _showFilterBottomSheet(
+                          context,
+                          examProvider,
+                          authProvider,
+                        );
                       },
                     ),
                   ],
@@ -232,12 +250,17 @@ class _ExamScheduleScreenState extends State<ExamScheduleScreen> {
             SliverToBoxAdapter(
               child: Container(
                 margin: const EdgeInsets.fromLTRB(16, 16, 16, 0),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
                 decoration: BoxDecoration(
                   color: Theme.of(context).colorScheme.errorContainer,
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                    color: Theme.of(context).colorScheme.error.withValues(alpha: 0.2),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.error.withValues(alpha: 0.2),
                   ),
                 ),
                 child: Row(
@@ -402,7 +425,9 @@ class _ExamScheduleScreenState extends State<ExamScheduleScreen> {
               height: MediaQuery.of(context).size.height * 0.75,
               decoration: BoxDecoration(
                 color: Theme.of(context).scaffoldBackgroundColor,
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(24),
+                ),
               ),
               child: Column(
                 children: [
@@ -421,28 +446,34 @@ class _ExamScheduleScreenState extends State<ExamScheduleScreen> {
                     padding: const EdgeInsets.symmetric(horizontal: 24),
                     child: Row(
                       children: [
-                        Icon(FLucideIcons.filter, size: 24, color: colorScheme.primary),
+                        Icon(
+                          FLucideIcons.filter,
+                          size: 24,
+                          color: colorScheme.primary,
+                        ),
                         const SizedBox(width: 12),
                         Text(
                           'Bộ lọc Lịch Thi',
-                          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: -0.5,
-                          ),
+                          style: Theme.of(context).textTheme.headlineSmall
+                              ?.copyWith(
+                                fontWeight: FontWeight.w800,
+                                letterSpacing: -0.5,
+                              ),
                         ),
                         const Spacer(),
                         IconButton(
                           onPressed: () => Navigator.pop(context),
                           icon: const Icon(FLucideIcons.x),
                           style: IconButton.styleFrom(
-                            backgroundColor: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
+                            backgroundColor: colorScheme.surfaceContainerHighest
+                                .withValues(alpha: 0.5),
                           ),
                         ),
                       ],
                     ),
                   ),
                   const SizedBox(height: 24),
-                  
+
                   // Content
                   Expanded(
                     child: ListView(
@@ -452,11 +483,12 @@ class _ExamScheduleScreenState extends State<ExamScheduleScreen> {
                         // 1. Semester Selector
                         Text(
                           'HỌC KỲ',
-                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: colorScheme.onSurfaceVariant,
-                            letterSpacing: 1.0,
-                          ),
+                          style: Theme.of(context).textTheme.labelSmall
+                              ?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: colorScheme.onSurfaceVariant,
+                                letterSpacing: 1.0,
+                              ),
                         ),
                         const SizedBox(height: 8),
                         DropdownButtonFormField<int>(
@@ -465,12 +497,16 @@ class _ExamScheduleScreenState extends State<ExamScheduleScreen> {
                           isExpanded: true,
                           decoration: InputDecoration(
                             filled: true,
-                            fillColor: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                            fillColor: colorScheme.surfaceContainerHighest
+                                .withValues(alpha: 0.3),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                               borderSide: BorderSide.none,
                             ),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
                           ),
                           items: provider.availableSemesters.map((s) {
                             return DropdownMenuItem<int>(
@@ -489,17 +525,18 @@ class _ExamScheduleScreenState extends State<ExamScheduleScreen> {
                             }
                           },
                         ),
-                        
+
                         const SizedBox(height: 24),
 
                         // 2. Register Period Selector
                         Text(
                           'ĐỢT HỌC',
-                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: colorScheme.onSurfaceVariant,
-                            letterSpacing: 1.0,
-                          ),
+                          style: Theme.of(context).textTheme.labelSmall
+                              ?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: colorScheme.onSurfaceVariant,
+                                letterSpacing: 1.0,
+                              ),
                         ),
                         const SizedBox(height: 8),
                         DropdownButtonFormField<int>(
@@ -508,12 +545,16 @@ class _ExamScheduleScreenState extends State<ExamScheduleScreen> {
                           isExpanded: true,
                           decoration: InputDecoration(
                             filled: true,
-                            fillColor: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                            fillColor: colorScheme.surfaceContainerHighest
+                                .withValues(alpha: 0.3),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                               borderSide: BorderSide.none,
                             ),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
                           ),
                           items: provider.registerPeriods.map((p) {
                             return DropdownMenuItem<int>(
@@ -521,18 +562,21 @@ class _ExamScheduleScreenState extends State<ExamScheduleScreen> {
                               child: Text(p.name),
                             );
                           }).toList(),
-                          onChanged: provider.registerPeriods.isEmpty ? null : (val) {
-                            if (val != null && provider.selectedSemesterId != null) {
-                              HapticFeedback.lightImpact();
-                              provider.selectRegisterPeriod(
-                                authProvider.accessToken!,
-                                provider.selectedSemesterId!,
-                                val,
-                                provider.selectedExamRound,
-                                authProvider.rawTokenStr,
-                              );
-                            }
-                          },
+                          onChanged: provider.registerPeriods.isEmpty
+                              ? null
+                              : (val) {
+                                  if (val != null &&
+                                      provider.selectedSemesterId != null) {
+                                    HapticFeedback.lightImpact();
+                                    provider.selectRegisterPeriod(
+                                      authProvider.accessToken!,
+                                      provider.selectedSemesterId!,
+                                      val,
+                                      provider.selectedExamRound,
+                                      authProvider.rawTokenStr,
+                                    );
+                                  }
+                                },
                         ),
 
                         const SizedBox(height: 24),
@@ -540,11 +584,12 @@ class _ExamScheduleScreenState extends State<ExamScheduleScreen> {
                         // 3. Exam Round Selector
                         Text(
                           'LẦN THI',
-                          style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: colorScheme.onSurfaceVariant,
-                            letterSpacing: 1.0,
-                          ),
+                          style: Theme.of(context).textTheme.labelSmall
+                              ?.copyWith(
+                                fontWeight: FontWeight.bold,
+                                color: colorScheme.onSurfaceVariant,
+                                letterSpacing: 1.0,
+                              ),
                         ),
                         const SizedBox(height: 8),
                         DropdownButtonFormField<int>(
@@ -553,12 +598,16 @@ class _ExamScheduleScreenState extends State<ExamScheduleScreen> {
                           isExpanded: true,
                           decoration: InputDecoration(
                             filled: true,
-                            fillColor: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                            fillColor: colorScheme.surfaceContainerHighest
+                                .withValues(alpha: 0.3),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
                               borderSide: BorderSide.none,
                             ),
-                            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 12,
+                            ),
                           ),
                           items: [1, 2, 3, 4, 5].map((round) {
                             return DropdownMenuItem<int>(
@@ -586,7 +635,7 @@ class _ExamScheduleScreenState extends State<ExamScheduleScreen> {
                       ],
                     ),
                   ),
-                  
+
                   // Bottom Button
                   Padding(
                     padding: EdgeInsets.only(
@@ -619,24 +668,31 @@ class _ExamScheduleScreenState extends State<ExamScheduleScreen> {
   ) {
     final theme = Theme.of(context);
     final colorScheme = theme.colorScheme;
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    final hasNote = context.watch<NoteProvider>().hasNoteFor(examRoom.id.toString());
+    final hasNote = context.watch<NoteProvider>().hasNoteFor(
+      examRoom.id.toString(),
+    );
 
     // Calculate countdown
     String countdownText = '';
     Color countdownColor = colorScheme.primary;
-    bool isPast = false;
 
     if (examRoom.examRoom?.examDateString != null) {
       try {
         final parts = examRoom.examRoom!.examDateString!.split('/');
         if (parts.length == 3) {
-          final examDate = DateTime(int.parse(parts[2]), int.parse(parts[1]), int.parse(parts[0]));
-          final today = DateTime(DateTime.now().year, DateTime.now().month, DateTime.now().day);
+          final examDate = DateTime(
+            int.parse(parts[2]),
+            int.parse(parts[1]),
+            int.parse(parts[0]),
+          );
+          final today = DateTime(
+            DateTime.now().year,
+            DateTime.now().month,
+            DateTime.now().day,
+          );
           final diff = examDate.difference(today).inDays;
-          
+
           if (diff < 0) {
-            isPast = true;
             countdownText = 'Đã thi xong';
             countdownColor = colorScheme.onSurfaceVariant;
           } else if (diff == 0) {
@@ -662,7 +718,9 @@ class _ExamScheduleScreenState extends State<ExamScheduleScreen> {
         style: FCardStyleDelta.delta(
           decoration: DecorationDelta.value(
             BoxDecoration(
-              color: theme.colorScheme.surfaceContainerHighest.withValues(alpha: 0.15),
+              color: theme.colorScheme.surfaceContainerHighest.withValues(
+                alpha: 0.15,
+              ),
               borderRadius: BorderRadius.circular(16),
               border: Border.all(
                 color: theme.colorScheme.outline.withValues(alpha: 0.25),
@@ -686,7 +744,10 @@ class _ExamScheduleScreenState extends State<ExamScheduleScreen> {
                       children: [
                         if (countdownText.isNotEmpty) ...[
                           Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 10,
+                              vertical: 4,
+                            ),
                             decoration: BoxDecoration(
                               color: countdownColor.withValues(alpha: 0.1),
                               borderRadius: BorderRadius.circular(20),
@@ -694,7 +755,11 @@ class _ExamScheduleScreenState extends State<ExamScheduleScreen> {
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                Icon(FLucideIcons.clock, size: 14, color: countdownColor),
+                                Icon(
+                                  FLucideIcons.clock,
+                                  size: 14,
+                                  color: countdownColor,
+                                ),
                                 const SizedBox(width: 6),
                                 Text(
                                   countdownText,
@@ -726,7 +791,11 @@ class _ExamScheduleScreenState extends State<ExamScheduleScreen> {
                     icon: Stack(
                       clipBehavior: Clip.none,
                       children: [
-                        Icon(FLucideIcons.notebookPen, color: colorScheme.primary, size: 20),
+                        Icon(
+                          FLucideIcons.notebookPen,
+                          color: colorScheme.primary,
+                          size: 20,
+                        ),
                         if (hasNote)
                           Positioned(
                             top: -2,
@@ -737,7 +806,11 @@ class _ExamScheduleScreenState extends State<ExamScheduleScreen> {
                               decoration: BoxDecoration(
                                 color: theme.colorScheme.error,
                                 shape: BoxShape.circle,
-                                border: Border.all(color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5), width: 1.5),
+                                border: Border.all(
+                                  color: colorScheme.surfaceContainerHighest
+                                      .withValues(alpha: 0.5),
+                                  width: 1.5,
+                                ),
                               ),
                             ),
                           ),
@@ -747,13 +820,18 @@ class _ExamScheduleScreenState extends State<ExamScheduleScreen> {
                       DateTime? examDate;
                       if (examRoom.examRoom?.examDateString != null) {
                         try {
-                          final parts = examRoom.examRoom!.examDateString!.split('/');
+                          final parts = examRoom.examRoom!.examDateString!
+                              .split('/');
                           if (parts.length == 3) {
-                            examDate = DateTime(int.parse(parts[2]), int.parse(parts[1]), int.parse(parts[0]));
+                            examDate = DateTime(
+                              int.parse(parts[2]),
+                              int.parse(parts[1]),
+                              int.parse(parts[0]),
+                            );
                           }
                         } catch (_) {}
                       }
-                      
+
                       showModalBottomSheet(
                         context: context,
                         isScrollControlled: true,
@@ -766,14 +844,17 @@ class _ExamScheduleScreenState extends State<ExamScheduleScreen> {
                       );
                     },
                     style: IconButton.styleFrom(
-                      backgroundColor: colorScheme.surfaceContainerHighest.withValues(alpha: 0.5),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      backgroundColor: colorScheme.surfaceContainerHighest
+                          .withValues(alpha: 0.5),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
                     ),
                   ),
                 ],
               ),
               const SizedBox(height: 24),
-              
+
               // Content
               if (examRoom.examRoom != null) ...[
                 // Highlight SBD & Room (Apple Health style boxes)
@@ -781,9 +862,14 @@ class _ExamScheduleScreenState extends State<ExamScheduleScreen> {
                   children: [
                     Expanded(
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
                         decoration: BoxDecoration(
-                          color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+                          color: colorScheme.surfaceContainerHighest.withValues(
+                            alpha: 0.4,
+                          ),
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: Column(
@@ -812,9 +898,14 @@ class _ExamScheduleScreenState extends State<ExamScheduleScreen> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 14,
+                        ),
                         decoration: BoxDecoration(
-                          color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.4),
+                          color: colorScheme.surfaceContainerHighest.withValues(
+                            alpha: 0.4,
+                          ),
                           borderRadius: BorderRadius.circular(16),
                         ),
                         child: Column(
@@ -843,12 +934,14 @@ class _ExamScheduleScreenState extends State<ExamScheduleScreen> {
                   ],
                 ),
                 const SizedBox(height: 20),
-                
+
                 // Time & Date Details
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.2),
+                    color: colorScheme.surfaceContainerHighest.withValues(
+                      alpha: 0.2,
+                    ),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Column(
@@ -860,7 +953,9 @@ class _ExamScheduleScreenState extends State<ExamScheduleScreen> {
                         FLucideIcons.calendarDays,
                       ),
                       Divider(
-                        color: colorScheme.outlineVariant.withValues(alpha: 0.3),
+                        color: colorScheme.outlineVariant.withValues(
+                          alpha: 0.3,
+                        ),
                         height: 24,
                       ),
                       _buildCleanDetailRow(
@@ -878,12 +973,18 @@ class _ExamScheduleScreenState extends State<ExamScheduleScreen> {
                 Container(
                   padding: const EdgeInsets.all(16),
                   decoration: BoxDecoration(
-                    color: colorScheme.surfaceContainerHighest.withValues(alpha: 0.3),
+                    color: colorScheme.surfaceContainerHighest.withValues(
+                      alpha: 0.3,
+                    ),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Row(
                     children: [
-                      Icon(FLucideIcons.info, size: 20, color: colorScheme.onSurfaceVariant),
+                      Icon(
+                        FLucideIcons.info,
+                        size: 20,
+                        color: colorScheme.onSurfaceVariant,
+                      ),
                       const SizedBox(width: 12),
                       Text(
                         'Chưa có thông tin chi tiết',
@@ -917,11 +1018,7 @@ class _ExamScheduleScreenState extends State<ExamScheduleScreen> {
       children: [
         Row(
           children: [
-            Icon(
-              icon,
-              size: 16,
-              color: colorScheme.onSurface,
-            ),
+            Icon(icon, size: 16, color: colorScheme.onSurface),
             const SizedBox(width: 8),
             Text(
               label,

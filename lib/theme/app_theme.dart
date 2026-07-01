@@ -8,7 +8,6 @@ class AppTheme {
   // ZINC PALETTE — True Dark / OLED Black (Shadcn standard)
   // ════════════════════════════════════════════════════════
   static const Color _black     = Color(0xFF000000); // OLED Pure Black
-  static const Color _zinc950   = Color(0xFF09090B); // Card surface
   static const Color _zinc900   = Color(0xFF18181B); // Secondary/Muted bg
   static const Color _zinc800   = Color(0xFF27272A); // Hairline border
   static const Color _zinc400   = Color(0xFFA1A1AA); // Muted / Caption

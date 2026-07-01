@@ -21,7 +21,6 @@ class ScheduleCard extends StatelessWidget {
     final colorScheme = Theme.of(context).colorScheme;
 
     // Format times if available
-    final startTimeStr = startHour?.startString ?? '??:??';
     final endTimeStr = endHour?.endString ?? '??:??';
 
     // Parse hours/minutes for the large display if possible

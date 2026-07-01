@@ -27,7 +27,7 @@ class _GradeScreenState extends State<GradeScreen> {
     final gradeProvider = Provider.of<GradeProvider>(context, listen: false);
     final token = authProvider.accessToken;
     if (token != null) {
-      gradeProvider.fetchGrades(token, forceRefresh: forceRefresh);
+      await gradeProvider.fetchGrades(token, forceRefresh: forceRefresh);
     }
   }
 
@@ -62,7 +62,9 @@ class _GradeScreenState extends State<GradeScreen> {
                 children: [
                   Text(
                     'Lỗi: ${provider.errorMessage}',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.red),
+                    style: Theme.of(
+                      context,
+                    ).textTheme.bodyMedium?.copyWith(color: Colors.red),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 16),
@@ -154,7 +156,8 @@ class _GradeScreenState extends State<GradeScreen> {
   }
 
   Widget _buildGradeItem(StudentMark mark) {
-    final isPass = mark.charMark.isNotEmpty && mark.charMark.toUpperCase() != 'F';
+    final isPass =
+        mark.charMark.isNotEmpty && mark.charMark.toUpperCase() != 'F';
     final hasMark = mark.charMark.isNotEmpty;
     final theme = FTheme.of(context);
     final colors = theme.colors;
@@ -164,9 +167,7 @@ class _GradeScreenState extends State<GradeScreen> {
       margin: const EdgeInsets.only(bottom: 12),
       decoration: BoxDecoration(
         color: colors.card,
-        border: Border.all(
-          color: colors.border,
-        ),
+        border: Border.all(color: colors.border),
         borderRadius: BorderRadius.circular(12),
       ),
       padding: const EdgeInsets.all(16),
@@ -231,17 +232,27 @@ class _GradeScreenState extends State<GradeScreen> {
                 children: [
                   _buildScoreColumn("Quá trình", mark.markQT.toString()),
                   _buildScoreColumn("Thi", mark.markTHI.toString()),
-                  _buildScoreColumn("Tổng kết", mark.mark.toString(), isBold: true, isPass: isPass),
+                  _buildScoreColumn(
+                    "Tổng kết",
+                    mark.mark.toString(),
+                    isBold: true,
+                    isPass: isPass,
+                  ),
                 ],
               ),
             ),
-          ]
+          ],
         ],
       ),
     );
   }
 
-  Widget _buildScoreColumn(String label, String score, {bool isBold = false, bool? isPass}) {
+  Widget _buildScoreColumn(
+    String label,
+    String score, {
+    bool isBold = false,
+    bool? isPass,
+  }) {
     final theme = FTheme.of(context);
     final colors = theme.colors;
 
@@ -256,17 +267,17 @@ class _GradeScreenState extends State<GradeScreen> {
         Text(
           label,
           style: theme.typography.body.sm.copyWith(
-                color: colors.mutedForeground,
-                fontWeight: FontWeight.w500,
-              ),
+            color: colors.mutedForeground,
+            fontWeight: FontWeight.w500,
+          ),
         ),
         const SizedBox(height: 4),
         Text(
           score,
           style: theme.typography.body.md.copyWith(
-                fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
-                color: scoreColor,
-              ),
+            fontWeight: isBold ? FontWeight.bold : FontWeight.w600,
+            color: scoreColor,
+          ),
         ),
       ],
     );

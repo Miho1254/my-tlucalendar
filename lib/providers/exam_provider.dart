@@ -203,9 +203,19 @@ class ExamProvider with ChangeNotifier {
       }
     }
     if (_availableSemesters.isNotEmpty) {
-      final currents = _availableSemesters.where((s) => s.isCurrent).toList();
-      final mainCurrent = currents.where((s) => s.semesterName.toLowerCase().contains('học kỳ')).firstOrNull;
-      _selectedSemesterId = mainCurrent?.id ?? currents.firstOrNull?.id ?? _availableSemesters.last.id;
+      final selectedStillExists =
+          _selectedSemesterId != null &&
+          _availableSemesters.any((s) => s.id == _selectedSemesterId);
+      if (!selectedStillExists) {
+        final currents = _availableSemesters.where((s) => s.isCurrent).toList();
+        final mainCurrent = currents
+            .where((s) => s.semesterName.toLowerCase().contains('học kỳ'))
+            .firstOrNull;
+        _selectedSemesterId =
+            mainCurrent?.id ??
+            currents.firstOrNull?.id ??
+            _availableSemesters.last.id;
+      }
     }
   }
 
@@ -227,31 +237,36 @@ class ExamProvider with ChangeNotifier {
     String? rawToken, {
     bool forceRefresh = false,
   }) async {
-    if (_selectedSemesterId == semesterId && _registerPeriods.isNotEmpty && !forceRefresh) {
+    if (_selectedSemesterId == semesterId &&
+        _registerPeriods.isNotEmpty &&
+        !forceRefresh) {
       return;
     }
 
+    final previousPeriodId = _selectedRegisterPeriodId;
+    final previousPeriodName = selectedRegisterPeriod?.name;
     _selectedSemesterId = semesterId;
     _errorMessage = null;
 
     if (!forceRefresh) {
       // Step 1: Load cache immediately without spinning
-      final cacheResult = await examRepository.getCachedExamSchedules(semesterId);
-      cacheResult.fold(
-        (_) => null,
-        (cachedSchedules) {
-          if (cachedSchedules.isNotEmpty) {
-            _populateRegisterPeriods(
-              cachedSchedules,
-              semesterId,
-              accessToken,
-              rawToken,
-              forceRefresh: false,
-            );
-            notifyListeners();
-          }
-        },
+      final cacheResult = await examRepository.getCachedExamSchedules(
+        semesterId,
       );
+      cacheResult.fold((_) => null, (cachedSchedules) {
+        if (cachedSchedules.isNotEmpty) {
+          _populateRegisterPeriods(
+            cachedSchedules,
+            semesterId,
+            accessToken,
+            rawToken,
+            preferredPeriodId: previousPeriodId,
+            preferredPeriodName: previousPeriodName,
+            forceRefresh: false,
+          );
+          notifyListeners();
+        }
+      });
     }
 
     // Step 2: Show loading spinner if memory is empty OR forceRefresh is true
@@ -301,6 +316,8 @@ class ExamProvider with ChangeNotifier {
               semesterId,
               currentToken,
               rawToken,
+              preferredPeriodId: previousPeriodId,
+              preferredPeriodName: previousPeriodName,
               forceRefresh: forceRefresh,
             );
             _errorMessage = l.message;
@@ -317,6 +334,8 @@ class ExamProvider with ChangeNotifier {
             semesterId,
             currentToken,
             rawToken,
+            preferredPeriodId: previousPeriodId,
+            preferredPeriodName: previousPeriodName,
             forceRefresh: forceRefresh,
           );
         },
@@ -337,6 +356,8 @@ class ExamProvider with ChangeNotifier {
     int semesterId,
     String accessToken,
     String? rawToken, {
+    int? preferredPeriodId,
+    String? preferredPeriodName,
     bool forceRefresh = false,
   }) {
     final currentSem =
@@ -365,7 +386,16 @@ class ExamProvider with ChangeNotifier {
         .toList();
 
     if (_registerPeriods.isNotEmpty) {
-      _selectedRegisterPeriodId = _registerPeriods.first.id;
+      final preferred = _registerPeriods
+          .where((period) => period.id == preferredPeriodId)
+          .firstOrNull;
+      final sameName = preferredPeriodName == null
+          ? null
+          : _registerPeriods
+                .where((period) => period.name == preferredPeriodName)
+                .firstOrNull;
+      _selectedRegisterPeriodId =
+          preferred?.id ?? sameName?.id ?? _registerPeriods.first.id;
       // Trigger fetch for the default selected period
       fetchExamRoomDetails(
         accessToken,
@@ -428,15 +458,12 @@ class ExamProvider with ChangeNotifier {
         scheduleId: scheduleId,
         round: round,
       );
-      cacheResult.fold(
-        (_) => null,
-        (cachedRooms) {
-          if (cachedRooms.isNotEmpty) {
-            _populateExamRooms(cachedRooms);
-            notifyListeners();
-          }
-        },
-      );
+      cacheResult.fold((_) => null, (cachedRooms) {
+        if (cachedRooms.isNotEmpty) {
+          _populateExamRooms(cachedRooms);
+          notifyListeners();
+        }
+      });
     }
 
     // Step 2: Show loading spinner if memory is empty OR forceRefresh is true
