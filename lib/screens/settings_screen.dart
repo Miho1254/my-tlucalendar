@@ -21,6 +21,7 @@ import 'package:tlucalendar/utils/semester_parser.dart';
 
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:http/http.dart' as http;
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -36,6 +37,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   UpdateCheckResult? _updateCheckResult;
   String? _updateCheckError;
   String? _appVersionLabel;
+  bool _isCheckingNetwork = false;
+  String? _networkStatus;
 
   @override
   void initState() {
@@ -125,6 +128,50 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Không thể mở trang release')),
       );
+    }
+  }
+
+  Future<void> _checkNetworkStatus() async {
+    if (_isCheckingNetwork) return;
+
+    setState(() {
+      _isCheckingNetwork = true;
+      _networkStatus = null;
+    });
+
+    try {
+      // Step 1: Check internet connectivity
+      final internetCheck = await http
+          .get(Uri.parse('https://www.google.com'))
+          .timeout(const Duration(seconds: 5));
+
+      if (internetCheck.statusCode != 200) {
+        throw Exception('no_internet');
+      }
+
+      // Step 2: Check school API
+      final apiCheck = await http
+          .get(Uri.parse('https://tlu-proxy-node.vercel.app'))
+          .timeout(const Duration(seconds: 10));
+
+      if (apiCheck.statusCode == 200) {
+        setState(() => _networkStatus = 'ok');
+      } else {
+        throw Exception('api_down');
+      }
+    } catch (e) {
+      if (!mounted) return;
+      if (e.toString().contains('no_internet') ||
+          e.toString().contains('SocketException') ||
+          e.toString().contains('Connection refused')) {
+        setState(() => _networkStatus = 'no_internet');
+      } else {
+        setState(() => _networkStatus = 'api_down');
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isCheckingNetwork = false);
+      }
     }
   }
 
@@ -405,6 +452,24 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     },
                   ),
                   FTile(
+                    prefix: _isCheckingNetwork
+                        ? const SizedBox(
+                            width: 20,
+                            height: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : Icon(
+                            _networkStatus == 'ok'
+                                ? FLucideIcons.checkCircle
+                                : _networkStatus == 'no_internet'
+                                    ? FLucideIcons.wifiOff
+                                    : FLucideIcons.serverOff,
+                          ),
+                    title: const Text('Kiểm tra kết nối'),
+                    subtitle: Text(_networkStatusText),
+                    onPress: _checkNetworkStatus,
+                  ),
+                  FTile(
                     prefix: const Icon(FLucideIcons.bug),
                     title: const Text('Báo lỗi'),
                     subtitle: const Text('Gửi email kèm thông tin thiết bị'),
@@ -620,6 +685,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
       return 'Đang dùng v${result.currentVersion}, mới nhất v${result.latestVersion}';
     }
     return 'Phiên bản hiện tại: v${result.currentVersion}';
+  }
+
+  String get _networkStatusText {
+    if (_isCheckingNetwork) return 'Đang kiểm tra...';
+    switch (_networkStatus) {
+      case 'ok':
+        return 'Mọi thứ hoạt động bình thường';
+      case 'no_internet':
+        return 'Không có kết nối mạng';
+      case 'api_down':
+        return 'Server trường đang gặp sự cố';
+      default:
+        return 'Nhấn để kiểm tra kết nối';
+    }
   }
 
   static const MethodChannel _navigationChannel = MethodChannel(
