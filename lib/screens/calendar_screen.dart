@@ -28,8 +28,8 @@ class CalendarScreen extends StatefulWidget {
 
 class _CalendarScreenState extends State<CalendarScreen> {
   late DateTime _selectedDate;
-  int _calendarKey = 0;
   bool _isWeeklyView = false;
+  late final FGridCalendarController _calendarController;
   static final DateFormat _headerDateFormat = DateFormat(
     'EEEE, d MMMM, yyyy',
     'vi',
@@ -39,13 +39,24 @@ class _CalendarScreenState extends State<CalendarScreen> {
   void initState() {
     super.initState();
     _selectedDate = DateTime.now();
+    _calendarController = FGridCalendarController(
+      initial: DateTime.utc(_selectedDate.year, _selectedDate.month),
+    );
+  }
+
+  @override
+  void dispose() {
+    _calendarController.dispose();
+    super.dispose();
   }
 
   void _jumpToToday() {
     setState(() {
       _selectedDate = DateTime.now();
-      _calendarKey++; // Forces FCalendar to rebuild and snap to the new month
     });
+    _calendarController.jumpToDayPicker(
+      DateTime.utc(_selectedDate.year, _selectedDate.month),
+    );
   }
 
   String _getWeekRangeString(DateTime date) {
@@ -441,13 +452,19 @@ class _CalendarScreenState extends State<CalendarScreen> {
                                       semester.id,
                                     );
                                     if (mounted) {
+                                      final newDate =
+                                          DateTime.fromMillisecondsSinceEpoch(
+                                            semester.startDate,
+                                          );
                                       setState(() {
-                                        _selectedDate =
-                                            DateTime.fromMillisecondsSinceEpoch(
-                                              semester.startDate,
-                                            );
-                                        _calendarKey++;
+                                        _selectedDate = newDate;
                                       });
+                                      _calendarController.jumpToDayPicker(
+                                        DateTime.utc(
+                                          newDate.year,
+                                          newDate.month,
+                                        ),
+                                      );
                                     }
                                   }
                                   if (context.mounted) Navigator.pop(context);
@@ -537,6 +554,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
             final double daySize = constraints.maxWidth / 7;
 
             return FCalendar.grid(
+              control: FGridCalendarControl(controller: _calendarController),
               style: FCalendarStyleDelta.delta(
                 decoration: const DecorationDelta.value(
                   BoxDecoration(color: Colors.transparent),
@@ -546,7 +564,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
                   daySize: Size(daySize, daySize),
                 ),
               ),
-              key: ValueKey(_calendarKey),
               selectionControl: FDateSelectionControl.lifted(
                 selected: (date) => _isSameDay(date, _selectedDate),
                 select: (date) {
