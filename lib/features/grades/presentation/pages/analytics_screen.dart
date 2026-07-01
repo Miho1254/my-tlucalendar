@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:tlucalendar/providers/grade_provider.dart';
 import 'package:forui/forui.dart';
+import 'package:forui_assets/forui_assets.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:tlucalendar/providers/auth_provider.dart';
 import 'package:tlucalendar/utils/semester_parser.dart';
@@ -24,13 +25,18 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final gradeProvider = Provider.of<GradeProvider>(context, listen: false);
       if (gradeProvider.analyticsResult == null && !gradeProvider.isLoading) {
-        final authProvider = Provider.of<AuthProvider>(context, listen: false);
-        final token = authProvider.accessToken;
-        if (token != null) {
-          gradeProvider.fetchGrades(token);
-        }
+        _fetchGrades();
       }
     });
+  }
+
+  Future<void> _fetchGrades({bool forceRefresh = false}) async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final gradeProvider = Provider.of<GradeProvider>(context, listen: false);
+    final token = authProvider.accessToken;
+    if (token != null) {
+      await gradeProvider.fetchGrades(token, forceRefresh: forceRefresh);
+    }
   }
 
   @override
@@ -42,6 +48,12 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
           FHeaderAction(
             icon: const Icon(Icons.arrow_back, size: 20),
             onPress: () => Navigator.of(context).pop(),
+          ),
+        ],
+        suffixes: [
+          FHeaderAction(
+            icon: const Icon(FLucideIcons.refreshCw, size: 20),
+            onPress: () => _fetchGrades(forceRefresh: true),
           ),
         ],
       ),
