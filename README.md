@@ -1,51 +1,104 @@
-# TLU Calendar (Miho's Version)
+<div align="center">
+  <h1>TLU Calendar</h1>
+  <p><strong>Ứng dụng xem lịch học, lịch thi và quản lý học tập dành riêng cho sinh viên Đại học Thủy Lợi.</strong></p>
+  <br />
+  <a href="https://github.com/Miho1254/my-tlucalendar/releases/latest">Tải APK mới nhất</a>
+  &nbsp;·&nbsp;
+  <a href="#tinh-nang-chinh">Tính năng</a>
+  &nbsp;·&nbsp;
+  <a href="#tu-build-tu">Tự build</a>
+  <br /><br />
+  <img src="https://img.shields.io/badge/Flutter-3.x-blue?style=flat-square&logo=flutter" alt="Flutter">
+  <img src="https://img.shields.io/github/actions/workflow/status/Miho1254/my-tlucalendar/release_main.yaml?style=flat-square&label=Build" alt="Build Status">
+</div>
 
-TLU Calendar is an unofficial scheduling and academic management application built for students of Thuy Loi University (TLU). It provides an intuitive interface to access course schedules, exam timetables, academic grades, and course registration.
+---
 
-This repository is a comprehensive refactor of the original application, focusing on modernizing the UI/UX, improving application performance, and implementing robust offline capabilities.
+## Giới thiệu
 
-## Key Features
+**TLU Calendar (Miho's Version)** là một bản fork cá nhân, được refactor toàn diện từ ứng dụng TLU Calendar gốc của tác giả [nekkochan0x0007](https://gitlab.com/nekkochan0x0007/tlucalendar).
 
-- **Schedule Management**: View weekly course timetables and exam schedules with offline caching.
-- **Academic Grades & Analytics**: Access semester grades, analyze academic performance over time, and simulate future GPA goals.
-- **Quick Access Tools**: Course registration and grade tracking available directly from the Today screen.
-- **Customizable Experience**: Full system-level light and dark mode support with dynamic theming.
-- **Personal Notes**: Attach personal notes to specific course sessions and exams directly on the calendar.
+Bản fork này tập trung vào 3 mục tiêu cốt lõi:
 
-## Comprehensive Refactoring Journey
+- **Nhanh** — Dữ liệu được cache cục bộ, mở app là có ngay, không cần chờ mạng.
+- **Chắc** — Sửa các lỗi phân tích API gốc, đặc biệt là lỗi nhận diện nhầm học kỳ.
+- **Đẹp** — Thiết kế lại toàn bộ giao diện theo chuẩn Apple HIG, hỗ trợ hoàn chỉnh Dark Mode.
 
-This project has undergone significant architectural and visual improvements to provide a more stable and aesthetically pleasing experience. The changes span across several core domains of the application.
+---
 
-### 1. Modernized User Interface (UI/UX)
-- **Apple HIG & ForUI Integration**: The entire application interface was redesigned using the `forui` package to adhere to Apple's Human Interface Guidelines.
-- **Liquid Glass Tab Bar**: Implemented a floating, translucent tab bar for seamless bottom navigation.
-- **Setup Wizard**: Introduced a comprehensive onboarding flow for first-time users to configure credentials and preferences easily.
-- **Dynamic Theming**: Removed all hardcoded colors. The application now strictly uses `Theme.of(context).colorScheme` to ensure perfect contrast and visual hierarchy in both Light and Dark modes.
-- **Typography & Layout**: Redesigned course cards, timeline items, and exam schedules to display critical information (e.g., start/end times, locations) more clearly with improved padding and visual boundaries.
+## Showcase
 
-### 2. Robust Caching & Offline Mode
-- **Database-Backed Storage**: Replaced rudimentary caching with a structured SQLite database (`DatabaseHelper`). Course schedules, exam data, and grades are now stored locally.
-- **Offline-First Approach**: The application immediately loads data from the local database upon launch, ensuring instant access even without an active internet connection.
-- **Smart Refreshing**: Integrated pull-to-refresh mechanisms across all major screens.
-- **Secure Session Management**: Ensured that logging out completely clears all cached local data to maintain user privacy.
+> Chèn ảnh chụp màn hình app ở đây để người đọc thấy ngay sản phẩm trước khi đọc tiếp.
 
-### 3. Core Logic & Bug Fixes
-- **Semester Auto-Detection**: Fixed a critical bug in the TLU API parsing where the application would incorrectly default to "Chuẩn đầu ra" (Exit Requirements) instead of the main academic semester. The logic now strictly filters and prioritizes standard semesters.
-- **Calendar Marker Accuracy**: Resolved ghosting issues with calendar note indicators by implementing composite primary keys.
-- **Scroll View Optimizations**: Eliminated "invisible scroll" bugs by replacing static oversized paddings with dynamic `SliverSafeArea` configurations, ensuring content naturally scrolls behind the translucent tab bar.
-- **Platform Compatibility**: Fixed initialization crashes on desktop/Linux environments caused by unsupported notification plugins.
+| Màn hình Hôm nay | Lịch học | Phân tích điểm | Cài đặt |
+|:---:|:---:|:---:|:---:|
+| *(screenshot)* | *(screenshot)* | *(screenshot)* | *(screenshot)* |
 
-### 4. Advanced Grade Analytics
-- **GPA Simulation**: Added a new analytics dashboard that allows students to view their GPA progression, set graduation goals, and manually simulate how upcoming grades will affect their final cumulative GPA.
+---
 
-### 5. Developer Tools & CI/CD
-- **Developer Mode**: Built a hidden developer menu (accessible by tapping the version number in settings 5 times) to view application logs and manage backup/restore operations.
-- **Automated Builds**: Streamlined the `.github/workflows/release_main.yaml` CI/CD pipeline. The repository now automatically compiles and publishes a ready-to-install Android APK on GitHub Releases whenever new code is merged to the main branch.
+## Tính năng chính
 
-## Credits & Acknowledgments
+### Xem lịch học & lịch thi
+Đồng bộ thời khóa biểu và lịch thi từ hệ thống TLU. Hỗ trợ xem theo tuần (dạng lưới) và theo ngày (dạng timeline). Có thể gắn ghi chú cá nhân vào từng buổi học.
 
-This refactor was built upon the foundation of the original TLU Calendar project.
-- **Original Author**: nekkochan0x0007
-- **Original Source**: https://gitlab.com/nekkochan0x0007/tlucalendar
+### Cache & Offline hoàn toàn
+Toàn bộ dữ liệu lịch học, lịch thi và điểm số được lưu vào database SQLite cục bộ. Khi mạng TLU "đi ngủ" lúc 12h đêm, app vẫn chạy bình thường.
 
-- **Refactor Authors**: Nguyen Duy Thanh & Dang Quang Hien (Miho)
+### Phân tích điểm & Mô phỏng GPA
+Xem điểm từng học kỳ, theo dõi GPA tích lũy theo thời gian. Tính năng mô phỏng cho phép bạn đặt mục tiêu tốt nghiệp và tính toán cần đạt bao nhiêu điểm trong các học kỳ còn lại.
+
+### Trải nghiệm hiện đại
+Thanh điều hướng dạng Liquid Glass nổi, tự thích ứng màu theo theme hệ thống. Hỗ trợ hoàn chỉnh Light Mode và Dark Mode không có lỗi tương phản.
+
+---
+
+## Những thay đổi nổi bật so với bản gốc
+
+### Giao diện
+- Áp dụng bộ component `forui` theo chuẩn Apple HIG.
+- Loại bỏ toàn bộ màu sắc hardcode, chuyển sang dùng `Theme.of(context).colorScheme` để Dark Mode không bị lỗi.
+- Thiết kế lại card môn học và timeline hiển thị giờ bắt đầu/kết thúc rõ ràng hơn.
+- Thêm Setup Wizard 3 bước cho người dùng mới.
+
+### Độ ổn định & Logic
+- Sửa lỗi app nhận diện nhầm "Chuẩn đầu ra" thành học kỳ chính khi gọi API.
+- Sửa lỗi dấu chấm ghi chú trên lịch bị "bóng ma" (hiển thị sai ngày).
+- Sửa lỗi scroll tàng hình do padding cứng quá lớn ở cuối màn hình.
+- Fix crash khi chạy trên Linux/Desktop do plugin thông báo không tương thích.
+
+### Công cụ & CI/CD
+- Developer Mode ẩn: bấm 5 lần vào số phiên bản trong Cài đặt để mở khóa menu xem logs và quản lý dữ liệu.
+- GitHub Actions tự động build và đăng APK lên Releases mỗi khi có commit mới trên nhánh `main`.
+
+---
+
+## Tự build
+
+### Yêu cầu
+- Flutter SDK 3.x trở lên
+- Dart SDK (đi kèm Flutter)
+- Android SDK (để build Android)
+
+### Các bước
+
+```sh
+# 1. Clone repo
+git clone https://github.com/Miho1254/my-tlucalendar.git
+cd my-tlucalendar
+
+# 2. Cài dependency
+flutter pub get
+
+# 3. Chạy ở chế độ debug
+flutter run
+
+# 4. Build APK release
+flutter build apk --release
+```
+
+---
+
+## Tác giả
+
+- **Dự án gốc:** [nekkochan0x0007](https://gitlab.com/nekkochan0x0007/tlucalendar)
+- **Bản Refactor:** Nguyễn Duy Thành & Đặng Quang Hiển (Miho)
