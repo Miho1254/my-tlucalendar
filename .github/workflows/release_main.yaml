@@ -45,8 +45,8 @@ jobs:
         run: |
           VERSION="$(awk '/^version:/ {print $2; exit}' pubspec.yaml | tr -d '[:space:]')"
           SHORT_SHA="${GITHUB_SHA::7}"
-          # Generate version: YYMMDD.HHmm (valid Flutter format)
-          TIMESTAMP="$(date -u +%y%m%d.%H%M)"
+          # Generate version: YYMMDD.HHmm.0 (Flutter requires 3 components)
+          TIMESTAMP="$(date -u +%y%m%d.%H%M).0"
           echo "old_version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "version=$TIMESTAMP" >> "$GITHUB_OUTPUT"
           echo "tag=v${TIMESTAMP}-${SHORT_SHA}" >> "$GITHUB_OUTPUT"
