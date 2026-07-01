@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:sqlite3/sqlite3.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
@@ -42,8 +43,27 @@ class DatabaseHelper {
       await Directory(dirname(dbPath)).create(recursive: true);
     } catch (_) {}
 
-    final db = sqlite3.open(dbPath);
-    return _configureDB(db);
+    try {
+      final db = sqlite3.open(dbPath);
+      return await _configureDB(db);
+    } catch (e) {
+      // Database corrupted — delete and rebuild
+      debugPrint('Database corrupted, rebuilding: $e');
+      try {
+        final dbFile = File(dbPath);
+        if (await dbFile.exists()) {
+          await dbFile.delete();
+        }
+        // Also delete WAL and SHM files
+        final walFile = File('$dbPath-wal');
+        final shmFile = File('$dbPath-shm');
+        if (await walFile.exists()) await walFile.delete();
+        if (await shmFile.exists()) await shmFile.delete();
+      } catch (_) {}
+
+      final db = sqlite3.open(dbPath);
+      return _configureDB(db);
+    }
   }
 
   Future<Database> _configureDB(Database db) async {
@@ -68,6 +88,40 @@ class DatabaseHelper {
     }
 
     return db;
+  }
+
+  /// Check database integrity. Returns true if OK, false if corrupted.
+  Future<bool> checkIntegrity() async {
+    try {
+      final db = await database;
+      final result = db.select('PRAGMA integrity_check;');
+      final status = result.first['integrity_check'] as String;
+      return status == 'ok';
+    } catch (e) {
+      debugPrint('Integrity check failed: $e');
+      return false;
+    }
+  }
+
+  /// Force rebuild database (delete and recreate).
+  Future<void> forceRebuild() async {
+    try {
+      await close();
+      final docsDir = await getApplicationDocumentsDirectory();
+      final dbPath = join(docsDir.path, 'tlu_calendar.db');
+      final dbFile = File(dbPath);
+      if (await dbFile.exists()) {
+        await dbFile.delete();
+      }
+      final walFile = File('$dbPath-wal');
+      final shmFile = File('$dbPath-shm');
+      if (await walFile.exists()) await walFile.delete();
+      if (await shmFile.exists()) await shmFile.delete();
+      _database = null;
+      await database; // Reopen and recreate
+    } catch (e) {
+      debugPrint('Force rebuild failed: $e');
+    }
   }
 
   // Exposed for Backup/Restore

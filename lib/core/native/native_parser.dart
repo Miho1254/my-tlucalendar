@@ -508,15 +508,25 @@ typedef FreeStudentMarkResult = void Function(Pointer<StudentMarkResult>);
 
 class NativeParser {
   static DynamicLibrary? _lib;
+  static bool _ffiAvailable = true;
+
+  /// Whether FFI native library is available
+  static bool get isFfiAvailable => _ffiAvailable;
 
   static DynamicLibrary get _library {
     if (_lib != null) return _lib!;
-    if (Platform.isAndroid) {
-      _lib = DynamicLibrary.open('libnekkoFramework.so');
-    } else {
-      _lib = DynamicLibrary.process();
+    try {
+      if (Platform.isAndroid) {
+        _lib = DynamicLibrary.open('libnekkoFramework.so');
+      } else {
+        _lib = DynamicLibrary.process();
+      }
+      return _lib!;
+    } catch (e) {
+      _ffiAvailable = false;
+      debugPrint('Failed to load native library: $e');
+      rethrow;
     }
-    return _lib!;
   }
 
   // --- Cache Native Logic ---
@@ -775,7 +785,8 @@ class NativeParser {
 
   static List<CourseModel> parseCourses(String jsonStr) {
     if (jsonStr.isEmpty) return [];
-    _cachedCoursesJson = jsonStr; // Cache input
+    _cachedCoursesJson = jsonStr;
+    if (!_ffiAvailable) return parseCoursesDart(jsonStr);
     try {
       final func = _library.lookupFunction<ParseCoursesFunc, ParseCourses>(
         'parse_courses',
@@ -856,8 +867,9 @@ class NativeParser {
       freeFunc(resultPtr);
       return list;
     } catch (e) {
-      debugPrint("Native Logic Error (Courses): $e");
-      return [];
+      debugPrint("Native Error (Courses), falling back to Dart: $e");
+      _ffiAvailable = false;
+      return parseCoursesDart(jsonStr);
     }
   }
 
@@ -937,7 +949,7 @@ class NativeParser {
       freeFunc(resultPtr);
       return list;
     } catch (e) {
-      debugPrint("Native Logic Error (ExamRooms): $e");
+      debugPrint("Native Error (ExamRooms): $e");
       return [];
     }
   }
@@ -1029,7 +1041,8 @@ class NativeParser {
 
   static List<CourseHour> parseCourseHours(String jsonStr) {
     if (jsonStr.isEmpty) return [];
-    _cachedHoursJson = jsonStr; // Cache input
+    _cachedHoursJson = jsonStr;
+    if (!_ffiAvailable) return parseCourseHoursDart(jsonStr);
     try {
       final func = _library
           .lookupFunction<ParseCourseHoursFunc, ParseCourseHours>(
@@ -1072,6 +1085,7 @@ class NativeParser {
 
   static List<SchoolYearModel> parseSchoolYears(String jsonStr) {
     if (jsonStr.isEmpty) return [];
+    if (!_ffiAvailable) return parseSchoolYearsDart(jsonStr);
     try {
       final func = _library
           .lookupFunction<ParseSchoolYearsFunc, ParseSchoolYears>(
@@ -1170,7 +1184,9 @@ class NativeParser {
       freeFunc(resultPtr);
       return list;
     } catch (e) {
-      return [];
+      debugPrint("Native Error (SchoolYears), falling back to Dart: $e");
+      _ffiAvailable = false;
+      return parseSchoolYearsDart(jsonStr);
     }
   }
 
@@ -1258,6 +1274,7 @@ class NativeParser {
 
   static UserModel? parseUser(String jsonStr) {
     if (jsonStr.isEmpty) return null;
+    if (!_ffiAvailable) return parseUserDart(jsonStr);
     try {
       final func = _library.lookupFunction<ParseUserFunc, ParseUser>(
         'parse_user',
@@ -1289,12 +1306,15 @@ class NativeParser {
       freeFunc(resultPtr);
       return user;
     } catch (e) {
-      return null;
+      debugPrint("Native Error (User), falling back to Dart: $e");
+      _ffiAvailable = false;
+      return parseUserDart(jsonStr);
     }
   }
 
   static Map<String, dynamic>? parseToken(String jsonStr) {
     if (jsonStr.isEmpty) return null;
+    if (!_ffiAvailable) return parseTokenDart(jsonStr);
     try {
       final func = _library.lookupFunction<ParseTokenFunc, ParseToken>(
         'parse_token',
@@ -1333,7 +1353,9 @@ class NativeParser {
       freeFunc(resultPtr);
       return map;
     } catch (e) {
-      return null;
+      debugPrint("Native Error (Token), falling back to Dart: $e");
+      _ffiAvailable = false;
+      return parseTokenDart(jsonStr);
     }
   }
 
@@ -1446,6 +1468,118 @@ class NativeParser {
     } catch (e) {
       debugPrint("Native Logic Error (Grades): $e");
       return [];
+    }
+  }
+
+  // =========================================================================
+  // Dart Fallback Parsers (used when FFI library is unavailable)
+  // =========================================================================
+
+  static List<CourseModel> parseCoursesDart(String jsonStr) {
+    try {
+      final data = jsonDecode(jsonStr);
+      final List<dynamic> items = data is List ? data : (data['data'] ?? []);
+      return items.map((e) => CourseModel(
+        id: e['id'] ?? 0,
+        courseCode: e['courseCode'] ?? '',
+        courseName: e['courseName'] ?? '',
+        classCode: e['classCode'] ?? '',
+        className: e['className'] ?? '',
+        dayOfWeek: e['dayOfWeek'] ?? 0,
+        startCourseHour: e['startCourseHour'] ?? 0,
+        endCourseHour: e['endCourseHour'] ?? 0,
+        room: e['room'] ?? '',
+        building: e['building'] ?? '',
+        campus: e['campus'] ?? '',
+        credits: e['credits'] ?? 0,
+        startDate: e['startDate'] ?? 0,
+        endDate: e['endDate'] ?? 0,
+        fromWeek: e['fromWeek'] ?? 0,
+        toWeek: e['toWeek'] ?? 0,
+        lecturerName: e['lecturerName'],
+        lecturerEmail: e['lecturerEmail'],
+        status: e['status'] ?? 'N/A',
+        grade: e['grade']?.toDouble(),
+      )).toList();
+    } catch (e) {
+      debugPrint('Dart parseCourses fallback error: $e');
+      return [];
+    }
+  }
+
+  static List<CourseHour> parseCourseHoursDart(String jsonStr) {
+    try {
+      final data = jsonDecode(jsonStr);
+      final List<dynamic> items = data is List ? data : (data['data'] ?? []);
+      return items.map((e) => CourseHour(
+        id: e['id'] ?? 0,
+        name: e['name'] ?? '',
+        startString: e['startString'] ?? '',
+        endString: e['endString'] ?? '',
+        indexNumber: e['indexNumber'] ?? 0,
+      )).toList();
+    } catch (e) {
+      debugPrint('Dart parseCourseHours fallback error: $e');
+      return [];
+    }
+  }
+
+  static List<SchoolYearModel> parseSchoolYearsDart(String jsonStr) {
+    try {
+      final data = jsonDecode(jsonStr);
+      final List<dynamic> items = data is List ? data : (data['data'] ?? []);
+      return items.map((e) {
+        final semesters = (e['semesters'] as List<dynamic>? ?? []).map((s) =>
+          SemesterModel(
+            id: s['id'] ?? 0,
+            semesterCode: s['semesterCode'] ?? '',
+            semesterName: s['semesterName'] ?? '',
+            startDate: s['startDate'] ?? 0,
+            endDate: s['endDate'] ?? 0,
+            isCurrent: s['isCurrent'] ?? false,
+          ),
+        ).toList();
+        return SchoolYearModel(
+          id: e['id'] ?? 0,
+          name: e['name'] ?? '',
+          code: e['code'] ?? '',
+          year: e['year'] ?? 0,
+          current: e['current'] ?? false,
+          startDate: e['startDate'] ?? 0,
+          endDate: e['endDate'] ?? 0,
+          displayName: e['displayName'] ?? '',
+          semesters: semesters,
+        );
+      }).toList();
+    } catch (e) {
+      debugPrint('Dart parseSchoolYears fallback error: $e');
+      return [];
+    }
+  }
+
+  static UserModel? parseUserDart(String jsonStr) {
+    try {
+      final data = jsonDecode(jsonStr);
+      final userData = data['data'] ?? data;
+      return UserModel(
+        id: userData['id'] ?? 0,
+        studentId: userData['studentId'] ?? '',
+        fullName: userData['fullName'] ?? '',
+        email: userData['email'] ?? '',
+        profileImageUrl: userData['profileImageUrl'],
+      );
+    } catch (e) {
+      debugPrint('Dart parseUser fallback error: $e');
+      return null;
+    }
+  }
+
+  static Map<String, dynamic>? parseTokenDart(String jsonStr) {
+    try {
+      return jsonDecode(jsonStr) as Map<String, dynamic>;
+    } catch (e) {
+      debugPrint('Dart parseToken fallback error: $e');
+      return null;
     }
   }
 }
