@@ -72,10 +72,14 @@ class UpdateService {
     if (version.startsWith('v') || version.startsWith('V')) {
       version = version.substring(1);
     }
-    // Strip commit SHA suffix (e.g. "2026.07.02+abc1234" → "2026.07.02")
-    final plusIndex = version.indexOf('+');
-    if (plusIndex != -1) {
-      version = version.substring(0, plusIndex);
+    // Strip commit SHA suffix (e.g. "2026.07.02-abc1234" → "2026.07.02")
+    final dashIndex = version.lastIndexOf('-');
+    if (dashIndex != -1) {
+      final suffix = version.substring(dashIndex + 1);
+      // Only strip if suffix looks like a commit SHA (hex, 7 chars)
+      if (RegExp(r'^[0-9a-f]{7}$').hasMatch(suffix)) {
+        version = version.substring(0, dashIndex);
+      }
     }
     return version;
   }
