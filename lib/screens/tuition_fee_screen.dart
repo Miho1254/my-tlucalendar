@@ -98,7 +98,8 @@ class _TuitionFeeScreenState extends State<TuitionFeeScreen> {
               return const Center(child: Text('Không có dữ liệu'));
             }
 
-            final paidItems = fee.items.where((i) => !i.isPending).toList();
+            // Reverse the paid items to show the newest first
+            final paidItems = fee.items.where((i) => !i.isPending).toList().reversed.toList();
             final unpaidItems = fee.items.where((i) => i.isPending).toList();
 
             return RefreshIndicator(
@@ -159,67 +160,54 @@ class _TuitionFeeScreenState extends State<TuitionFeeScreen> {
     final colors = theme.colorScheme;
     final isPaid = remainingAmount <= 0;
 
-    if (isPaid) {
-      return Container(
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          color: colors.primaryContainer.withValues(alpha: 0.3),
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: colors.primary.withValues(alpha: 0.2)),
-        ),
-        child: Column(
-          children: [
-            Icon(FLucideIcons.checkCircle, color: colors.primary, size: 48),
-            const SizedBox(height: 16),
-            Text(
-              'Đã hoàn thành học phí!',
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: colors.primary,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
     return Container(
       padding: const EdgeInsets.all(24),
       decoration: BoxDecoration(
-        color: colors.errorContainer.withValues(alpha: 0.3),
+        color: isPaid ? colors.primaryContainer.withValues(alpha: 0.3) : colors.surface,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: colors.error.withValues(alpha: 0.2)),
+        border: Border.all(color: colors.outline.withValues(alpha: 0.2)),
+        boxShadow: [
+          if (!isPaid) BoxShadow(
+            color: colors.shadow.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(FLucideIcons.alertCircle, color: colors.error, size: 24),
+              Icon(isPaid ? FLucideIcons.checkCircle : FLucideIcons.wallet, 
+                   color: isPaid ? colors.primary : colors.onSurfaceVariant, 
+                   size: 24),
               const SizedBox(width: 8),
               Text(
-                'TỔNG DƯ NỢ',
+                isPaid ? 'ĐÃ HOÀN THÀNH' : 'TỔNG DƯ NỢ',
                 style: theme.textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.w600,
-                  color: colors.error,
+                  color: isPaid ? colors.primary : colors.onSurfaceVariant,
                   letterSpacing: 1.1,
                 ),
               ),
             ],
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 16),
           Text(
-            _formatCurrency(remainingAmount),
+            isPaid ? 'Tuyệt vời!' : _formatCurrency(remainingAmount),
             style: theme.textTheme.displaySmall?.copyWith(
               fontWeight: FontWeight.bold,
-              color: colors.error,
+              color: colors.onSurface,
             ),
           ),
           const SizedBox(height: 8),
           Text(
-            'Vui lòng thanh toán sớm để không ảnh hưởng đến việc học.',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: colors.error.withValues(alpha: 0.8),
+            isPaid 
+                ? 'Bạn không có khoản nợ học phí nào.' 
+                : 'Số dư cần được thanh toán.',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: colors.onSurfaceVariant,
             ),
           ),
         ],
@@ -288,50 +276,76 @@ class _TuitionFeeScreenState extends State<TuitionFeeScreen> {
     final colors = theme.colorScheme;
 
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 12),
+      padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
       decoration: BoxDecoration(
         border: isLast ? null : Border(
-          bottom: BorderSide(color: colors.outline.withValues(alpha: 0.2)),
+          bottom: BorderSide(color: colors.outline.withValues(alpha: 0.1)),
         ),
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: colors.errorContainer.withValues(alpha: 0.3),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(FLucideIcons.creditCard, size: 20, color: colors.error),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: colors.primaryContainer.withValues(alpha: 0.3),
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(FLucideIcons.fileText, size: 18, color: colors.primary),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item.note.isNotEmpty ? item.note : 'Học phí',
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    if (item.periodName.isNotEmpty) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        item.periodName,
+                        style: theme.textTheme.bodySmall?.copyWith(
+                          color: colors.onSurfaceVariant,
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ],
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            decoration: BoxDecoration(
+              color: colors.errorContainer.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: colors.error.withValues(alpha: 0.1)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  item.note.isNotEmpty ? item.note : 'Học phí',
+                  'Cần thanh toán',
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w600,
+                    color: colors.onSurfaceVariant,
                   ),
                 ),
-                if (item.periodName.isNotEmpty) ...[
-                  const SizedBox(height: 2),
-                  Text(
-                    item.periodName,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: colors.onSurfaceVariant,
-                    ),
+                Text(
+                  _formatCurrency(item.amount),
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: colors.error,
                   ),
-                ],
+                ),
               ],
-            ),
-          ),
-          Text(
-            _formatCurrency(item.amount),
-            style: theme.textTheme.bodyMedium?.copyWith(
-              fontWeight: FontWeight.w600,
-              color: colors.error,
             ),
           ),
         ],
@@ -346,87 +360,98 @@ class _TuitionFeeScreenState extends State<TuitionFeeScreen> {
     return FAccordionItem(
       title: Row(
         children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: colors.primaryContainer.withValues(alpha: 0.3),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(FLucideIcons.checkCircle2, size: 18, color: colors.primary),
+          ),
+          const SizedBox(width: 12),
           Expanded(
-            child: Text(
-              item.note.isNotEmpty ? item.note : 'Học phí',
-              style: const TextStyle(fontWeight: FontWeight.w600),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.note.isNotEmpty ? item.note : 'Học phí',
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                ),
+                if (item.periodName.isNotEmpty)
+                  Text(
+                    item.periodName,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colors.onSurfaceVariant,
+                    ),
+                  ),
+              ],
             ),
           ),
-          FBadge(
-            variant: FBadgeVariant.secondary,
-            child: const Text('Đã đóng'),
+          Text(
+            _formatCurrency(item.amountPaid),
+            style: theme.textTheme.bodyMedium?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: colors.primary,
+            ),
           ),
         ],
       ),
       child: Padding(
-        padding: const EdgeInsets.only(top: 8),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            if (item.periodName.isNotEmpty) ...[
-              _buildHistoryDetailRow(context, 'Đợt', item.periodName),
-              const SizedBox(height: 8),
-            ],
-            _buildHistoryDetailRow(context, 'Số tiền', _formatCurrency(item.amount)),
-            if (item.amountPaid > 0) ...[
-              const SizedBox(height: 8),
-              _buildHistoryDetailRow(context, 'Đã đóng', _formatCurrency(item.amountPaid)),
-            ],
-            if (item.details.isNotEmpty) ...[
-              const SizedBox(height: 12),
-              Text(
-                'Chi tiết môn học',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  fontWeight: FontWeight.w600,
-                  color: colors.onSurfaceVariant,
+        padding: const EdgeInsets.only(top: 12, bottom: 8),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: colors.surfaceContainerHighest.withValues(alpha: 0.3),
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              if (item.details.isNotEmpty) ...[
+                Text(
+                  'Chi tiết môn học',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: colors.onSurfaceVariant,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 8),
-              ...item.details.map((detail) => Padding(
-                padding: const EdgeInsets.only(bottom: 8),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        detail.note.isNotEmpty ? detail.note : detail.feeName,
-                        style: theme.textTheme.bodySmall,
+                const SizedBox(height: 12),
+                ...item.details.map((detail) => Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Icon(FLucideIcons.bookOpen, size: 16, color: colors.onSurfaceVariant.withValues(alpha: 0.7)),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          detail.note.isNotEmpty ? detail.note : detail.feeName,
+                          style: theme.textTheme.bodyMedium,
+                        ),
                       ),
-                    ),
-                    Text(
-                      _formatCurrency(detail.totalAmount),
-                      style: theme.textTheme.bodySmall?.copyWith(
-                        fontWeight: FontWeight.w600,
+                      const SizedBox(width: 8),
+                      Text(
+                        _formatCurrency(detail.totalAmount),
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          fontWeight: FontWeight.w500,
+                        ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
+                )),
+              ] else ...[
+                Text(
+                  'Không có chi tiết môn học',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: colors.onSurfaceVariant,
+                  ),
+                  textAlign: TextAlign.center,
                 ),
-              )),
+              ],
             ],
-          ],
+          ),
         ),
       ),
-    );
-  }
-
-  Widget _buildHistoryDetailRow(BuildContext context, String label, String value) {
-    final theme = Theme.of(context);
-
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(
-          label,
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: theme.colorScheme.onSurfaceVariant,
-          ),
-        ),
-        Text(
-          value,
-          style: theme.textTheme.bodySmall?.copyWith(
-            fontWeight: FontWeight.w600,
-          ),
-        ),
-      ],
     );
   }
 
