@@ -97,123 +97,105 @@ class _TodayScreenState extends State<TodayScreen> {
         final userName =
             authProvider.currentUser?.fullName.split(' ').last ?? 'bạn';
 
-        return FScaffold(
-          child: SafeArea(
-            bottom: false, // Liquid Glass tab bar handles its own safe area
-            child: RefreshIndicator(
-              onRefresh: () async {
-                if (authProvider.accessToken != null &&
-                    scheduleProvider.currentSemester != null) {
-                  // Refresh schedule (await — blocks UI until done)
-                  await scheduleProvider.loadSchedule(
-                    authProvider.accessToken!,
-                    scheduleProvider.currentSemester!.id,
-                    forceRefresh: true,
-                  );
+        return RefreshIndicator(
+          onRefresh: () async {
+            if (authProvider.accessToken != null &&
+                scheduleProvider.currentSemester != null) {
+              // Refresh schedule (await — blocks UI until done)
+              await scheduleProvider.loadSchedule(
+                authProvider.accessToken!,
+                scheduleProvider.currentSemester!.id,
+                forceRefresh: true,
+              );
 
-                  // Fire-and-forget exam refresh (don't block UI)
-                  final examProvider = context.read<ExamProvider>();
-                  if (examProvider.selectedSemesterId != null) {
-                    examProvider.selectSemester(
-                      authProvider.accessToken!,
-                      examProvider.selectedSemesterId!,
-                      authProvider.rawTokenStr,
-                      forceRefresh: true,
-                    );
-                  }
-                }
-              },
-              child: CustomScrollView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                slivers: [
-                  // Reconnecting Banner
-                  if (scheduleProvider.isRefreshing)
-                    SliverToBoxAdapter(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
+              // Fire-and-forget exam refresh (don't block UI)
+              final examProvider = context.read<ExamProvider>();
+              if (examProvider.selectedSemesterId != null) {
+                examProvider.selectSemester(
+                  authProvider.accessToken!,
+                  examProvider.selectedSemesterId!,
+                  authProvider.rawTokenStr,
+                  forceRefresh: true,
+                );
+              }
+            }
+          },
+          child: CustomScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
+              // 1. Wow Header (SliverAppBar with Parallax Image)
+              SliverAppBar(
+                expandedHeight: 240.0,
+                toolbarHeight: 0.0, // Removes the meaningless 56px gap when collapsed
+                pinned: false,
+                stretch: true,
+                backgroundColor: Colors.transparent,
+                surfaceTintColor: Colors.transparent,
+                flexibleSpace: FlexibleSpaceBar(
+                  stretchModes: const [
+                    StretchMode.zoomBackground,
+                  ],
+                  background: Image.asset(
+                    Theme.of(context).brightness == Brightness.dark
+                        ? 'assets/today_dark.png'
+                        : 'assets/today.png',
+                    fit: BoxFit.cover,
+                    alignment: Alignment.topCenter,
+                  ),
+                ), // Added missing closing parenthesis for FlexibleSpaceBar
+                // We use a Transform to push the bottom widget down by 1px and make it 25px tall 
+                // so it covers the image bleed and perfectly merges with the next sliver.
+                bottom: PreferredSize(
+                  preferredSize: const Size.fromHeight(24),
+                  child: Transform.translate(
+                    offset: const Offset(0, 1),
+                    child: Container(
+                      height: 25,
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: context.theme.scaffoldStyle.backgroundColor,
+                        borderRadius: const BorderRadius.vertical(
+                          top: Radius.circular(24),
                         ),
-                        child: FAlert(
-                          icon: const SizedBox(
-                            width: 14,
-                            height: 14,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
-                          title: const Text('Đang lấy dữ liệu mới...'),
-                        ),
-                      ),
-                    ),
-
-                  if (scheduleProvider.isReconnecting)
-                    SliverToBoxAdapter(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
-                        child: FAlert(
-                          icon: const SizedBox(
-                            width: 14,
-                            height: 14,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
-                          title: const Text('Đang thử kết nối lại...'),
-                        ),
-                      ),
-                    ),
-
-                  // Offline Banner
-                  if (scheduleProvider.isOfflineMode &&
-                      !scheduleProvider.isRefreshing)
-                    SliverToBoxAdapter(
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
-                        ),
-                        child: FAlert(
-                          variant: FAlertVariant.destructive,
-                          icon: const Icon(Icons.cloud_off, size: 16),
-                          title: const Text(
-                            'Mất kết nối. Đang hiển thị lịch đã lưu.',
-                          ),
-                        ),
-                      ),
-                    ),
-
-                  // Greeting Header
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(24, 32, 24, 8),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            '${_getGreeting()},\n$userName! 👋',
-                            style: Theme.of(context).textTheme.displayLarge
-                                ?.copyWith(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurface,
-                                ),
-                          ),
-                          const SizedBox(height: 8),
-                          Text(
-                            todaySchedules.isEmpty
-                                ? 'Hôm nay bạn được nghỉ ngơi thoải mái!'
-                                : 'Hôm nay chiến ${todaySchedules.length} môn nhé.',
-                            style: Theme.of(context).textTheme.bodyLarge
-                                ?.copyWith(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.onSurfaceVariant,
-                                ),
-                          ),
-                        ],
                       ),
                     ),
                   ),
+                ),
+              ),
+
+              // 2. Greeting Header in the Jumbotron
+              SliverToBoxAdapter(
+                child: Container(
+                  width: double.infinity,
+                  color: context.theme.scaffoldStyle.backgroundColor,
+                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${_getGreeting()},\n$userName! 👋',
+                        style: Theme.of(context).textTheme.displayLarge
+                            ?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurface,
+                            ),
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        todaySchedules.isEmpty
+                            ? 'Hôm nay bạn được nghỉ ngơi thoải mái!'
+                            : 'Hôm nay chiến ${todaySchedules.length} môn nhé.',
+                        style: Theme.of(context).textTheme.bodyLarge
+                            ?.copyWith(
+                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                            ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+                // 2. Reconnecting Banner
+
 
                   // Date Chip
                   SliverToBoxAdapter(
@@ -344,7 +326,7 @@ class _TodayScreenState extends State<TodayScreen> {
                   if (todaySchedules.isEmpty)
                     const SliverToBoxAdapter(
                       child: Padding(
-                        padding: EdgeInsets.only(top: 40),
+                        padding: EdgeInsets.only(top: 8),
                         child: EmptyStateWidget(
                           icon: FLucideIcons.coffee,
                           title: 'Hôm nay trống lịch!',
@@ -404,9 +386,7 @@ class _TodayScreenState extends State<TodayScreen> {
                   ),
                 ],
               ),
-            ),
-          ),
-        );
+            );
       },
     );
   }

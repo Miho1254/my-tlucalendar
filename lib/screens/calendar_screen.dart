@@ -138,7 +138,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
             slivers: [
               SliverToBoxAdapter(child: _buildHeader(context)),
               SliverToBoxAdapter(child: _buildSurvivalBar(context)),
-              SliverToBoxAdapter(child: _buildOfflineIndicator(context)),
               if (!_isWeeklyView) ...[
                 SliverToBoxAdapter(child: _buildCalendar(context)),
                 const SliverToBoxAdapter(child: SizedBox(height: 16)),
@@ -497,57 +496,6 @@ class _CalendarScreenState extends State<CalendarScreen> {
     );
   }
 
-  Widget _buildOfflineIndicator(BuildContext context) {
-    return Consumer<ScheduleProvider>(
-      builder: (context, provider, _) {
-        if (provider.isRefreshing) {
-          return Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 16.0,
-              vertical: 8.0,
-            ),
-            child: FAlert(
-              title: const Text('Đang lấy dữ liệu mới...'),
-              icon: const SizedBox(
-                width: 16,
-                height: 16,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
-            ),
-          );
-        }
-
-        if (provider.isReconnecting) {
-          return Padding(
-            padding: const EdgeInsets.symmetric(
-              horizontal: 16.0,
-              vertical: 8.0,
-            ),
-            child: FAlert(
-              title: const Text('Đang kết nối lại...'),
-              icon: const SizedBox(
-                width: 16,
-                height: 16,
-                child: CircularProgressIndicator(strokeWidth: 2),
-              ),
-            ),
-          );
-        }
-
-        if (provider.isOfflineMode) {
-          return const Padding(
-            padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-            child: FAlert(
-              title: Text('Mất kết nối'),
-              subtitle: Text('Đang hiển thị dữ liệu lịch đã lưu.'),
-              icon: Icon(Icons.wifi_off),
-            ),
-          );
-        }
-        return const SizedBox.shrink();
-      },
-    );
-  }
 
   Widget _buildCalendar(BuildContext context) {
     final theme = Theme.of(context);
@@ -712,7 +660,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
         }
 
         return SliverPadding(
-          padding: const EdgeInsets.only(top: 8, bottom: 16),
+          padding: EdgeInsets.only(top: 8, bottom: MediaQuery.paddingOf(context).bottom + 16),
           sliver: SliverList.builder(
             itemCount: courses.length,
             itemBuilder: (context, index) {
