@@ -283,7 +283,7 @@ class _TuitionFeeScreenState extends State<TuitionFeeScreen> {
             ),
           ),
           Text(
-            _formatCurrency(item.remaining),
+            _formatCurrency(item.amount),
             style: theme.textTheme.bodyMedium?.copyWith(
               fontWeight: FontWeight.w600,
               color: colors.error,
