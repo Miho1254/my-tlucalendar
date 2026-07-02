@@ -255,6 +255,9 @@ class ScheduleProvider extends ChangeNotifier {
 
     if (found != null) {
       _currentSemester = found;
+      _courses = [];
+      _isLoading = true;
+      notifyListeners();
       await loadSchedule(accessToken, semesterId);
     }
   }

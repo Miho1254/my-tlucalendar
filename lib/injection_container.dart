@@ -46,6 +46,16 @@ import 'package:tlucalendar/features/grades/domain/repositories/grade_repository
 import 'package:tlucalendar/features/grades/domain/usecases/get_grades.dart';
 import 'package:tlucalendar/providers/grade_provider.dart';
 import 'package:tlucalendar/providers/note_provider.dart';
+import 'package:tlucalendar/features/tuition/data/datasources/tuition_remote_data_source.dart';
+import 'package:tlucalendar/features/tuition/data/repositories/tuition_repository_impl.dart';
+import 'package:tlucalendar/features/tuition/domain/repositories/tuition_repository.dart';
+import 'package:tlucalendar/features/tuition/domain/usecases/get_tuition_fee.dart';
+import 'package:tlucalendar/providers/tuition_provider.dart';
+import 'package:tlucalendar/features/education_program/data/datasources/education_program_remote_data_source.dart';
+import 'package:tlucalendar/features/education_program/data/repositories/education_program_repository_impl.dart';
+import 'package:tlucalendar/features/education_program/domain/repositories/education_program_repository.dart';
+import 'package:tlucalendar/features/education_program/domain/usecases/get_education_program.dart';
+import 'package:tlucalendar/providers/education_program_provider.dart';
 
 final sl = GetIt.instance;
 
@@ -187,5 +197,25 @@ Future<void> init() async {
       getGradesUseCase: sl(),
       gradeRepository: sl(),
     ),
+  );
+
+  //! Features - Tuition
+  sl.registerLazySingleton<TuitionRemoteDataSource>(
+      () => TuitionRemoteDataSourceImpl(client: sl()));
+  sl.registerLazySingleton<TuitionRepository>(
+      () => TuitionRepositoryImpl(remoteDataSource: sl()));
+  sl.registerLazySingleton(() => GetTuitionFee(sl()));
+  sl.registerLazySingleton(
+    () => TuitionProvider(getTuitionFeeUseCase: sl()),
+  );
+
+  //! Features - Education Program
+  sl.registerLazySingleton<EducationProgramRemoteDataSource>(
+      () => EducationProgramRemoteDataSourceImpl(client: sl()));
+  sl.registerLazySingleton<EducationProgramRepository>(
+      () => EducationProgramRepositoryImpl(remoteDataSource: sl()));
+  sl.registerLazySingleton(() => GetEducationProgram(sl()));
+  sl.registerLazySingleton(
+    () => EducationProgramProvider(getEducationProgramUseCase: sl()),
   );
 }

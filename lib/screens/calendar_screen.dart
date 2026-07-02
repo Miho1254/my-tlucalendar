@@ -310,7 +310,12 @@ class _CalendarScreenState extends State<CalendarScreen> {
                             _getWeekRangeString(_selectedDate),
                             style: Theme.of(context).textTheme.bodyLarge
                                 ?.copyWith(
-                                  fontWeight: FontWeight.bold,
+                                  fontWeight: isToday || _isSameDay(
+                                    _selectedDate.subtract(Duration(days: _selectedDate.weekday - 1)),
+                                    VnTime.now().subtract(Duration(days: VnTime.now().weekday - 1)),
+                                  )
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
                                   color: Theme.of(
                                     context,
                                   ).colorScheme.onSurfaceVariant,
@@ -519,7 +524,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 ),
               ),
               selectionControl: FDateSelectionControl.lifted(
-                selected: (date) => _isSameDay(date, _selectedDate),
+                selected: (date) => !_isSameDay(date, VnTime.now()) && _isSameDay(date, _selectedDate),
                 select: (date) {
                   setState(() {
                     _selectedDate = date;

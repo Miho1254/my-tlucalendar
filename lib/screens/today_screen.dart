@@ -13,6 +13,8 @@ import 'package:forui/forui.dart';
 import 'package:forui_assets/forui_assets.dart';
 import 'package:tlucalendar/features/grades/presentation/pages/grade_screen.dart';
 import 'package:tlucalendar/features/grades/presentation/pages/analytics_screen.dart';
+import 'package:tlucalendar/screens/tuition_fee_screen.dart';
+import 'package:tlucalendar/screens/education_program_screen.dart';
 import 'package:tlucalendar/utils/vn_time.dart';
 
 class TodayScreen extends StatefulWidget {
@@ -146,7 +148,7 @@ class _TodayScreenState extends State<TodayScreen> {
                 // We use a Transform to push the bottom widget down by 1px and make it 25px tall 
                 // so it covers the image bleed and perfectly merges with the next sliver.
                 bottom: PreferredSize(
-                  preferredSize: const Size.fromHeight(24),
+                  preferredSize: const Size.fromHeight(25),
                   child: Transform.translate(
                     offset: const Offset(0, 1),
                     child: Container(
@@ -309,6 +311,44 @@ class _TodayScreenState extends State<TodayScreen> {
                                       content: Text(
                                         'Tính năng đang phát triển',
                                       ),
+                                    ),
+                                  );
+                                },
+                              ),
+                              FTile(
+                                prefix: Icon(
+                                  Icons.account_balance_wallet,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                                title: const Text('Kiểm tra học phí'),
+                                suffix: const Icon(
+                                  FLucideIcons.chevronRight,
+                                  size: 20,
+                                ),
+                                onPress: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => const TuitionFeeScreen(),
+                                    ),
+                                  );
+                                },
+                              ),
+                              FTile(
+                                prefix: Icon(
+                                  Icons.school,
+                                  color: Theme.of(context).colorScheme.primary,
+                                ),
+                                title: const Text('Chương trình đào tạo'),
+                                suffix: const Icon(
+                                  FLucideIcons.chevronRight,
+                                  size: 20,
+                                ),
+                                onPress: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => const EducationProgramScreen(),
                                     ),
                                   );
                                 },
