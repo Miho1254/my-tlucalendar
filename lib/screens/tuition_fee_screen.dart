@@ -1,9 +1,12 @@
+import 'dart:math';
+import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:forui/forui.dart';
 import 'package:tlucalendar/providers/auth_provider.dart';
 import 'package:tlucalendar/providers/tuition_provider.dart';
 import 'package:tlucalendar/features/tuition/domain/entities/tuition_fee.dart';
+import 'package:tlucalendar/utils/semester_parser.dart';
 
 class TuitionFeeScreen extends StatefulWidget {
   const TuitionFeeScreen({super.key});
@@ -17,7 +20,7 @@ class _TuitionFeeScreenState extends State<TuitionFeeScreen> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _fetchTuitionFee();
+      _fetchTuitionFee(forceRefresh: true);
     });
   }
 
@@ -28,18 +31,6 @@ class _TuitionFeeScreenState extends State<TuitionFeeScreen> {
     if (token != null) {
       await tuitionProvider.fetchTuitionFee(token, forceRefresh: forceRefresh);
     }
-  }
-
-  String _cleanSubjectName(String name) {
-    // Xóa các mã môn học nằm ở cuối chuỗi trong ngoặc () hoặc [] 
-    var cleaned = name.replaceAll(RegExp(r'\s*[\(\[].*?[\)\]]$'), '').trim();
-    // Thường mã môn nối bằng dấu "-" ở cuối, ví dụ "Toán - MAT101"
-    final dashIndex = cleaned.lastIndexOf('-');
-    if (dashIndex > 0 && dashIndex > cleaned.length - 15) { 
-      // Chỉ cắt nếu dấu trừ nằm ở khúc cuối (chắc chắn là mã môn)
-      cleaned = cleaned.substring(0, dashIndex).trim();
-    }
-    return cleaned;
   }
 
   @override
@@ -60,231 +51,253 @@ class _TuitionFeeScreenState extends State<TuitionFeeScreen> {
           ),
         ],
       ),
-      child: Material(
-        type: MaterialType.transparency,
-        child: Consumer<TuitionProvider>(
-          builder: (context, provider, _) {
-            if (provider.isLoading) {
-              return const Center(child: CircularProgressIndicator());
-            }
+      child: Consumer<TuitionProvider>(
+        builder: (context, provider, _) {
+          if (provider.isLoading && provider.tuitionFee == null) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-            if (provider.errorMessage != null) {
-              return Center(
-                child: Padding(
-                  padding: const EdgeInsets.all(24),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(
-                        FLucideIcons.cloudOff,
-                        size: 64,
+          if (provider.errorMessage != null && provider.tuitionFee == null) {
+            return Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(FLucideIcons.cloudOff, size: 64),
+                    const SizedBox(height: 16),
+                    Text(
+                      'Úi! Có lỗi rồi!',
+                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.bold,
                       ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'Úi! Có lỗi rồi!',
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      provider.errorMessage!,
+                      textAlign: TextAlign.center,
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
-                      const SizedBox(height: 8),
-                      Text(
-                        provider.errorMessage!,
-                        textAlign: TextAlign.center,
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
-                        ),
-                      ),
-                      const SizedBox(height: 24),
-                      FButton(
-                        onPress: () => _fetchTuitionFee(forceRefresh: true),
-                        child: const Text('Thử lại'),
-                      ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(height: 24),
+                    FButton(
+                      child: const Text('Thử lại'),
+                      onPress: () => _fetchTuitionFee(forceRefresh: true),
+                    ),
+                  ],
                 ),
-              );
-            }
-
-            final fee = provider.tuitionFee;
-            if (fee == null) {
-              return const Center(child: Text('Không có dữ liệu'));
-            }
-
-            // Reverse the paid items to show the newest first
-            final paidItems = fee.items.where((i) => !i.isPending).toList().reversed.toList();
-            final unpaidItems = fee.items.where((i) => i.isPending).toList();
-
-            return RefreshIndicator(
-              onRefresh: () => _fetchTuitionFee(forceRefresh: true),
-              child: ListView(
-                physics: const AlwaysScrollableScrollPhysics(),
-                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-                children: [
-                  _buildHeroCard(context, fee.totalPayable),
-                  const SizedBox(height: 16),
-                  
-                  _buildStatsRow(context, fee),
-                  const SizedBox(height: 32),
-                  
-                  if (unpaidItems.isNotEmpty) ...[
-                    Text(
-                      'Cần thanh toán',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    ...unpaidItems.map((item) => Padding(
-                      padding: const EdgeInsets.only(bottom: 16),
-                      child: _buildDebtItem(context, item),
-                    )),
-                    const SizedBox(height: 20),
-                  ],
-                  
-                  if (paidItems.isNotEmpty) ...[
-                    Text(
-                      'Lịch sử giao dịch',
-                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                        fontWeight: FontWeight.w800,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    FCard(
-                      child: FAccordion(
-                        children: paidItems.map((item) => _buildHistoryAccordionItem(context, item)).toList(),
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 32),
-                ],
               ),
             );
-          },
-        ),
-      ),
-    );
-  }
+          }
 
-  Widget _buildHeroCard(BuildContext context, double totalPayable) {
-    final theme = Theme.of(context);
-    final colors = theme.colorScheme;
+          final fee = provider.tuitionFee;
+          if (fee == null) {
+            return const Center(child: Text('Không có dữ liệu'));
+          }
 
-    return Container(
-      padding: const EdgeInsets.all(24),
-      decoration: BoxDecoration(
-        color: colors.primaryContainer.withValues(alpha: 0.3),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: colors.primary.withValues(alpha: 0.1)),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
+          final paidItems = fee.items.where((i) => !i.isPending).toList().reversed.toList();
+          final unpaidItems = fee.items.where((i) => i.isPending).toList();
+          final semesterFees = _calculateSemesterFees(fee);
+
+          return Stack(
             children: [
-              Icon(FLucideIcons.landmark, color: colors.primary, size: 24),
-              const SizedBox(width: 8),
-              Text(
-                'TỔNG HỌC PHÍ',
-                style: theme.textTheme.titleSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: colors.primary,
-                  letterSpacing: 1.2,
+              RefreshIndicator(
+                onRefresh: () => _fetchTuitionFee(forceRefresh: true),
+                child: ListView(
+                  physics: const AlwaysScrollableScrollPhysics(),
+                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+                  children: [
+                    _buildHeroStats(context, fee),
+                    const SizedBox(height: 32),
+                    
+                    if (semesterFees.length >= 2) ...[
+                      _buildTuitionChart(context, semesterFees),
+                      const SizedBox(height: 32),
+                    ],
+
+                    if (unpaidItems.isNotEmpty) ...[
+                      Padding(
+                        padding: const EdgeInsets.only(left: 4, bottom: 12),
+                        child: Text(
+                          'CẦN THANH TOÁN',
+                          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1.2,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                      ...unpaidItems.map((item) => Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: _buildDebtCard(context, item),
+                      )),
+                      const SizedBox(height: 20),
+                    ],
+                    
+                    if (paidItems.isNotEmpty) ...[
+                      Padding(
+                        padding: const EdgeInsets.only(left: 4, bottom: 12),
+                        child: Text(
+                          'LỊCH SỬ GIAO DỊCH',
+                          style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                            fontWeight: FontWeight.w800,
+                            letterSpacing: 1.2,
+                            color: Theme.of(context).colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                      ...paidItems.map((item) => Padding(
+                        padding: const EdgeInsets.only(bottom: 12),
+                        child: ExpandableHistoryCard(item: item),
+                      )),
+                    ],
+                    const SizedBox(height: 40),
+                  ],
                 ),
               ),
+              if (provider.isLoading)
+                const Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: LinearProgressIndicator(),
+                ),
             ],
-          ),
-          const SizedBox(height: 20),
-          Text(
-            _formatCurrency(totalPayable),
-            style: theme.textTheme.displaySmall?.copyWith(
-              fontWeight: FontWeight.w800,
-              color: colors.onSurface,
-            ),
-          ),
-          const SizedBox(height: 8),
-          Text(
-            'Tổng học phí tích lũy toàn khóa học.',
-            style: theme.textTheme.bodyMedium?.copyWith(
-              color: colors.onSurfaceVariant,
-              height: 1.5,
-            ),
-          ),
-        ],
+          );
+        },
       ),
     );
   }
 
-  Widget _buildStatsRow(BuildContext context, TuitionFee fee) {
-    final theme = Theme.of(context);
-    final colors = theme.colorScheme;
-    final greenColor = const Color(0xFF10B981);
+  Widget _buildTuitionChart(BuildContext context, List<_SemesterFee> semesterFees) {
+    double minAmount = semesterFees.map((e) => e.amount).reduce(min);
+    double maxAmount = semesterFees.map((e) => e.amount).reduce(max);
     
-    return Row(
+    // padding for Y axis
+    minAmount = (minAmount * 0.8);
+    maxAmount = (maxAmount * 1.1);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Expanded(
-          child: FCard.raw(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(FLucideIcons.wallet, size: 16, color: colors.error),
-                      const SizedBox(width: 6),
-                      Text(
-                        'Tổng dư nợ',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: colors.onSurfaceVariant,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    _formatCurrency(fee.remainingAmount),
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      color: fee.remainingAmount > 0 ? colors.error : colors.onSurface,
-                    ),
-                  ),
-                ],
-              ),
+        Padding(
+          padding: const EdgeInsets.only(left: 4, bottom: 12),
+          child: Text(
+            'BIẾN ĐỘNG HỌC PHÍ',
+            style: Theme.of(context).textTheme.labelLarge?.copyWith(
+              fontWeight: FontWeight.w800,
+              letterSpacing: 1.2,
+              color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
         ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: FCard.raw(
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(FLucideIcons.checkCircle2, size: 16, color: greenColor),
-                      const SizedBox(width: 6),
-                      Text(
-                        'Đã thanh toán',
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: colors.onSurfaceVariant,
-                          fontWeight: FontWeight.w600,
+        FCard(
+          child: Padding(
+            padding: const EdgeInsets.only(top: 8.0, right: 16.0),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                return SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: SizedBox(
+                    height: 200,
+                    width: semesterFees.length > 5 ? semesterFees.length * 60.0 : constraints.maxWidth,
+                    child: LineChart(
+                      LineChartData(
+                        lineTouchData: LineTouchData(
+                          touchTooltipData: LineTouchTooltipData(
+                            getTooltipColor: (touchedSpot) => Theme.of(context).brightness == Brightness.dark 
+                                ? Theme.of(context).colorScheme.surfaceContainerHighest
+                                : Theme.of(context).colorScheme.primary,
+                            getTooltipItems: (touchedSpots) {
+                              return touchedSpots.map((spot) {
+                                final sf = semesterFees[spot.x.toInt()];
+                                return LineTooltipItem(
+                                  '${sf.info?.shortReadableName ?? sf.label}\n${_formatCurrency(sf.amount)}',
+                                  Theme.of(context).textTheme.bodySmall!.copyWith(
+                                    color: Theme.of(context).brightness == Brightness.dark 
+                                        ? Theme.of(context).colorScheme.onSurface
+                                        : Colors.white, 
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                );
+                              }).toList();
+                            },
+                          ),
                         ),
+                        gridData: FlGridData(
+                          show: true,
+                          drawVerticalLine: false,
+                          getDrawingHorizontalLine: (value) => FlLine(
+                            color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.2),
+                            strokeWidth: 1,
+                          ),
+                        ),
+                        titlesData: FlTitlesData(
+                          leftTitles: AxisTitles(
+                            sideTitles: SideTitles(
+                              showTitles: true,
+                              reservedSize: 40,
+                              getTitlesWidget: (value, meta) {
+                                if (value == minAmount || value == maxAmount) return const SizedBox.shrink();
+                                return SideTitleWidget(
+                                  meta: meta,
+                                  space: 4,
+                                  child: Text('${(value / 1000000).toStringAsFixed(1)}Tr', style: Theme.of(context).textTheme.labelSmall),
+                                );
+                              },
+                            ),
+                          ),
+                          bottomTitles: AxisTitles(
+                            sideTitles: SideTitles(
+                              showTitles: true,
+                              reservedSize: 22,
+                              interval: 1,
+                              getTitlesWidget: (value, meta) {
+                                if (value % 1 == 0 && value.toInt() >= 0 && value.toInt() < semesterFees.length) {
+                                  final info = semesterFees[value.toInt()].info;
+                                  final text = info != null ? 'Kỳ ${info.semester}' : 'Kỳ';
+                                  return SideTitleWidget(
+                                    meta: meta,
+                                    space: 4,
+                                    child: Text(text, style: Theme.of(context).textTheme.labelSmall),
+                                  );
+                                }
+                                return const SizedBox.shrink();
+                              },
+                            ),
+                          ),
+                          rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                          topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                        ),
+                        borderData: FlBorderData(show: false),
+                        minX: -0.2,
+                        maxX: (semesterFees.length - 1).toDouble() + 0.2,
+                        minY: minAmount,
+                        maxY: maxAmount,
+                        lineBarsData: [
+                          LineChartBarData(
+                            spots: semesterFees.asMap().entries.map((e) {
+                              return FlSpot(e.key.toDouble(), e.value.amount);
+                            }).toList(),
+                            isCurved: true,
+                            color: Theme.of(context).colorScheme.primary,
+                            barWidth: 3,
+                            isStrokeCapRound: true,
+                            dotData: const FlDotData(show: true),
+                            belowBarData: BarAreaData(
+                              show: true,
+                              color: Theme.of(context).colorScheme.primary.withValues(alpha: 0.1),
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    _formatCurrency(fee.totalPaid),
-                    style: theme.textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w800,
-                      color: greenColor,
+                      duration: const Duration(milliseconds: 150),
+                      curve: Curves.linear,
                     ),
                   ),
-                ],
-              ),
+                );
+              },
             ),
           ),
         ),
@@ -292,197 +305,307 @@ class _TuitionFeeScreenState extends State<TuitionFeeScreen> {
     );
   }
 
-  Widget _buildDebtItem(BuildContext context, TuitionItem item) {
+  Widget _buildHeroStats(BuildContext context, TuitionFee fee) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
+    final greenColor = const Color(0xFF10B981);
 
-    return Container(
-      decoration: BoxDecoration(
-        color: colors.surface,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: colors.outline.withValues(alpha: 0.1)),
-        boxShadow: [
-          BoxShadow(
-            color: colors.shadow.withValues(alpha: 0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      clipBehavior: Clip.antiAlias,
-      child: Stack(
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-            child: Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: colors.errorContainer.withValues(alpha: 0.2),
-                    shape: BoxShape.circle,
-                  ),
-                  child: Icon(FLucideIcons.alertCircle, size: 24, color: colors.error),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        item.periodName.isNotEmpty ? item.periodName : 'Khoản nợ học phí',
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.w700,
-                          height: 1.4,
-                        ),
-                      ),
-                      const SizedBox(height: 6),
-                      Text(
-                        'Cần thanh toán', 
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: colors.onSurfaceVariant,
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  _formatCurrency(item.amount),
-                  style: theme.textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: colors.error,
-                  ),
-                ),
-              ],
+          Text(
+            'Tổng học phí',
+            style: theme.textTheme.titleMedium?.copyWith(
+              color: colors.onSurfaceVariant,
+              fontWeight: FontWeight.w600,
             ),
           ),
-          Positioned(
-            left: 0,
-            top: 0,
-            bottom: 0,
-            child: Container(
-              width: 4,
-              color: colors.error,
+          const SizedBox(height: 8),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              _formatCurrency(fee.totalPayable),
+              style: theme.textTheme.displaySmall?.copyWith(
+                fontWeight: FontWeight.w800,
+                color: colors.onSurface,
+                letterSpacing: -0.5,
+              ),
             ),
+          ),
+          
+          const SizedBox(height: 36),
+          
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Đã thanh toán',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: colors.onSurfaceVariant,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        _formatCurrency(fee.totalPaid),
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: greenColor,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 24),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Tổng dư nợ',
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: colors.onSurfaceVariant,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        _formatCurrency(fee.remainingAmount),
+                        style: theme.textTheme.headlineSmall?.copyWith(
+                          fontWeight: FontWeight.w800,
+                          color: fee.remainingAmount > 0 ? colors.error : colors.onSurface,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),
     );
   }
 
-  FAccordionItem _buildHistoryAccordionItem(BuildContext context, TuitionItem item) {
+  Widget _buildDebtCard(BuildContext context, TuitionItem item) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
-    final greenColor = const Color(0xFF10B981);
-
-    return FAccordionItem(
-      title: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: greenColor.withValues(alpha: 0.1),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(FLucideIcons.checkCircle2, size: 18, color: greenColor),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+    
+    return FCard(
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
+                Icon(FLucideIcons.alertCircle, color: colors.error, size: 20),
+                const SizedBox(width: 8),
                 Text(
-                  item.periodName.isNotEmpty ? item.periodName : 'Thanh toán học phí',
-                  style: theme.textTheme.titleSmall?.copyWith(
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'Đã hoàn thành',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: colors.onSurfaceVariant,
+                  'CẦN THANH TOÁN',
+                  style: theme.textTheme.labelMedium?.copyWith(
+                    color: colors.error,
+                    fontWeight: FontWeight.w700,
+                    letterSpacing: 0.5,
                   ),
                 ),
               ],
             ),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            _formatCurrency(item.amountPaid),
-            style: theme.textTheme.titleSmall?.copyWith(
-              fontWeight: FontWeight.w800,
-              color: greenColor,
+            const SizedBox(height: 8),
+            Text(
+              item.periodName.isNotEmpty ? item.periodName : 'Khoản nợ học phí',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+                height: 1.4,
+              ),
             ),
-          ),
-        ],
+            const SizedBox(height: 8),
+            Text(
+              _formatCurrency(item.amount),
+              style: theme.textTheme.titleLarge?.copyWith(
+                fontWeight: FontWeight.w800,
+                color: colors.error,
+              ),
+            ),
+          ],
+        ),
       ),
-      child: Padding(
-        padding: const EdgeInsets.only(top: 8, bottom: 16),
-        child: Container(
-          padding: const EdgeInsets.all(20),
-          decoration: BoxDecoration(
-            color: colors.surfaceContainerHighest.withValues(alpha: 0.3),
-            borderRadius: BorderRadius.circular(16),
-          ),
+    );
+  }
+}
+
+class ExpandableHistoryCard extends StatefulWidget {
+  final TuitionItem item;
+  
+  const ExpandableHistoryCard({super.key, required this.item});
+
+  @override
+  State<ExpandableHistoryCard> createState() => _ExpandableHistoryCardState();
+}
+
+class _ExpandableHistoryCardState extends State<ExpandableHistoryCard> {
+  bool _expanded = false;
+
+  String _cleanSubjectName(String name) {
+    var cleaned = name.replaceAll(RegExp(r'\s*[\(\[].*?[\)\]]$'), '').trim();
+    cleaned = cleaned.replaceAll(RegExp(r'Học phí\s+(môn\s+|học phần\s+)?', caseSensitive: false), '');
+    final dashIndex = cleaned.lastIndexOf('-');
+    if (dashIndex > 0 && dashIndex > cleaned.length - 15) { 
+      cleaned = cleaned.substring(0, dashIndex).trim();
+    }
+    
+    if (cleaned.isNotEmpty) {
+      cleaned = cleaned[0].toUpperCase() + cleaned.substring(1);
+    }
+    return cleaned;
+  }
+
+  String _formatSemester(String semester) {
+    if (semester.isEmpty) return 'Kỳ học';
+    final parts = semester.split('_');
+    if (parts.length >= 3) {
+      return 'Học kỳ ${parts[0]} (${parts[1]}-${parts[2]})';
+    }
+    return semester;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final greenColor = const Color(0xFF10B981);
+
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _expanded = !_expanded;
+        });
+      },
+      child: FCard(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (item.details.isNotEmpty) ...[
-                Text(
-                  'CHI TIẾT MÔN HỌC',
-                  style: theme.textTheme.labelMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: colors.onSurfaceVariant,
-                    letterSpacing: 0.8,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                ...item.details.map((detail) {
-                  final cleanedName = _cleanSubjectName(detail.note.isNotEmpty ? detail.note : detail.feeName);
-                  return Padding(
-                    padding: const EdgeInsets.only(bottom: 16),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Padding(
-                          padding: const EdgeInsets.only(top: 2), // Align icon with text
-                          child: Icon(FLucideIcons.book, size: 16, color: colors.onSurfaceVariant.withValues(alpha: 0.7)),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      Icon(FLucideIcons.checkCircle2, color: greenColor, size: 20),
+                      const SizedBox(width: 8),
+                      Text(
+                        'ĐÃ HOÀN THÀNH',
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          color: greenColor,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.5,
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Text(
-                            cleanedName,
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              height: 1.5,
-                              fontWeight: FontWeight.w500,
+                      ),
+                    ],
+                  ),
+                  Icon(
+                    _expanded ? FLucideIcons.chevronUp : FLucideIcons.chevronDown,
+                    size: 20,
+                    color: colors.onSurfaceVariant,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                widget.item.semesterName.isNotEmpty 
+                    ? _formatSemester(widget.item.semesterName) 
+                    : (widget.item.periodName.isNotEmpty ? widget.item.periodName : 'Thanh toán học phí'),
+                style: theme.textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _formatCurrency(widget.item.amountPaid),
+                style: theme.textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w800,
+                  color: greenColor,
+                ),
+              ),
+              
+              if (_expanded) ...[
+                const SizedBox(height: 12),
+                Divider(color: theme.dividerColor, height: 1),
+                const SizedBox(height: 12),
+                if (widget.item.details.isNotEmpty)
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: widget.item.details.map((detail) {
+                      final cleanedName = _cleanSubjectName(detail.note.isNotEmpty ? detail.note : detail.feeName);
+                      return Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 2),
+                                  child: Icon(FLucideIcons.book, size: 16, color: colors.onSurfaceVariant.withValues(alpha: 0.7)),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: Text(
+                                    cleanedName,
+                                    style: theme.textTheme.bodyMedium?.copyWith(
+                                      height: 1.4,
+                                      color: colors.onSurface,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
+                            const SizedBox(height: 4),
+                            Padding(
+                              padding: const EdgeInsets.only(left: 28),
+                              child: Align(
+                                alignment: Alignment.centerRight,
+                                child: Text(
+                                  _formatCurrency(detail.totalAmount),
+                                  style: theme.textTheme.bodyMedium?.copyWith(
+                                    color: greenColor,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 16),
-                        Text(
-                          _formatCurrency(detail.totalAmount),
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            fontWeight: FontWeight.w700,
-                            color: greenColor,
-                          ),
-                        ),
-                      ],
+                      );
+                    }).toList(),
+                  )
+                else
+                  Text(
+                    'Không có thông tin chi tiết.',
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: colors.onSurfaceVariant,
+                      fontStyle: FontStyle.italic,
                     ),
-                  );
-                }),
-              ] else ...[
-                Text(
-                  'Không có thông tin chi tiết.',
-                  style: theme.textTheme.bodyMedium?.copyWith(
-                    color: colors.onSurfaceVariant,
-                    fontStyle: FontStyle.italic,
                   ),
-                  textAlign: TextAlign.center,
-                ),
               ],
             ],
           ),
@@ -490,13 +613,52 @@ class _TuitionFeeScreenState extends State<TuitionFeeScreen> {
       ),
     );
   }
+}
 
-  String _formatCurrency(double amount) {
-    if (amount == 0) return '0 ₫';
-    final formatted = amount.toStringAsFixed(0).replaceAllMapped(
-      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
-      (Match m) => '${m[1]}.',
-    );
-    return '$formatted ₫';
+String _formatCurrency(double amount) {
+  if (amount == 0) return '0 ₫';
+  final formatted = amount.toStringAsFixed(0).replaceAllMapped(
+    RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+    (Match m) => '${m[1]}.',
+  );
+  return '$formatted ₫';
+}
+
+class _SemesterFee {
+  final String label;
+  final double amount;
+  final SemesterInfo? info;
+
+  _SemesterFee(this.label, this.amount, this.info);
+}
+
+List<_SemesterFee> _calculateSemesterFees(TuitionFee fee) {
+  final Map<String, double> totals = {};
+  final Map<String, SemesterInfo?> infos = {};
+
+  for (var item in fee.items) {
+    final key = item.semesterName.isNotEmpty ? item.semesterName : item.periodName;
+    if (key.isEmpty) continue;
+    
+    totals[key] = (totals[key] ?? 0) + item.amount;
+    if (!infos.containsKey(key)) {
+      infos[key] = item.semesterName.parseSemester();
+    }
   }
+
+  final list = totals.entries.map((e) {
+    return _SemesterFee(e.key, e.value, infos[e.key]);
+  }).toList();
+
+  list.sort((a, b) {
+    if (a.info != null && b.info != null) {
+      if (a.info!.startYear != b.info!.startYear) {
+        return a.info!.startYear.compareTo(b.info!.startYear);
+      }
+      return a.info!.semester.compareTo(b.info!.semester);
+    }
+    return 0;
+  });
+
+  return list;
 }

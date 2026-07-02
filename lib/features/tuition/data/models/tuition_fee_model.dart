@@ -52,4 +52,53 @@ class TuitionFeeModel extends TuitionFee {
       items: items,
     );
   }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'totalPayable': totalPayable,
+      'totalPaid': totalPaid,
+      'remainingAmount': remainingAmount,
+      'items': items.map((i) => {
+        'id': i.id,
+        'semesterName': i.semesterName,
+        'periodName': i.periodName,
+        'amount': i.amount,
+        'amountPaid': i.amountPaid,
+        'note': i.note,
+        'isComplete': i.isComplete,
+        'isPending': i.isPending,
+        'details': i.details.map((d) => {
+          'feeName': d.feeName,
+          'amount': d.amount,
+          'totalAmount': d.totalAmount,
+          'note': d.note,
+        }).toList(),
+      }).toList(),
+    };
+  }
+
+  factory TuitionFeeModel.fromCacheJson(Map<String, dynamic> json) {
+    return TuitionFeeModel(
+      totalPayable: (json['totalPayable'] as num?)?.toDouble() ?? 0,
+      totalPaid: (json['totalPaid'] as num?)?.toDouble() ?? 0,
+      remainingAmount: (json['remainingAmount'] as num?)?.toDouble() ?? 0,
+      items: (json['items'] as List<dynamic>? ?? []).map((i) => TuitionItem(
+        id: i['id'] as int? ?? 0,
+        semesterName: i['semesterName']?.toString() ?? '',
+        periodName: i['periodName']?.toString() ?? '',
+        amount: (i['amount'] as num?)?.toDouble() ?? 0,
+        amountPaid: (i['amountPaid'] as num?)?.toDouble() ?? 0,
+        note: i['note']?.toString() ?? '',
+        isComplete: i['isComplete'] as bool? ?? false,
+        isPending: i['isPending'] as bool? ?? false,
+        details: (i['details'] as List<dynamic>? ?? []).map((d) => TuitionDetail(
+          feeName: d['feeName']?.toString() ?? '',
+          amount: (d['amount'] as num?)?.toDouble() ?? 0,
+          totalAmount: (d['totalAmount'] as num?)?.toDouble() ?? 0,
+          note: d['note']?.toString() ?? '',
+        )).toList(),
+      )).toList(),
+    );
+  }
 }
+

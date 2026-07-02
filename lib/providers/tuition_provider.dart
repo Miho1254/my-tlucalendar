@@ -1,6 +1,9 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tlucalendar/core/error/failures.dart';
 import 'package:tlucalendar/features/tuition/domain/entities/tuition_fee.dart';
+import 'package:tlucalendar/features/tuition/data/models/tuition_fee_model.dart';
 import 'package:tlucalendar/features/tuition/domain/usecases/get_tuition_fee.dart';
 import 'package:tlucalendar/providers/auth_provider.dart';
 
@@ -30,10 +33,26 @@ class TuitionProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> loadCachedTuitionFee() async {
+    if (_tuitionFee != null) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final cachedString = prefs.getString('cached_tuition_fee_v2');
+      if (cachedString != null) {
+        _tuitionFee = TuitionFeeModel.fromCacheJson(jsonDecode(cachedString));
+        notifyListeners();
+      }
+    } catch (e) {
+      // Ignore cache load errors
+    }
+  }
+
   Future<void> fetchTuitionFee(String accessToken, {bool forceRefresh = false}) async {
     _errorMessage = null;
+    
+    await loadCachedTuitionFee();
 
-    if (forceRefresh) {
+    if (forceRefresh || _tuitionFee == null) {
       _isLoading = true;
       notifyListeners();
     }
@@ -54,19 +73,45 @@ class TuitionProvider extends ChangeNotifier {
             },
             (fee) {
               _tuitionFee = fee;
+              _saveToCache(fee);
             },
           );
         } else {
-          _errorMessage = _mapFailureToMessage(failure);
+          // If we have cached data, don't show a blocking error on silent refresh
+          if (_tuitionFee == null || forceRefresh) {
+            _errorMessage = _mapFailureToMessage(failure);
+          }
         }
       },
       (fee) async {
         _tuitionFee = fee;
+        _saveToCache(fee);
       },
     );
 
     _isLoading = false;
     notifyListeners();
+  }
+
+  Future<void> _saveToCache(TuitionFee fee) async {
+    try {
+      if (fee is TuitionFeeModel) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('cached_tuition_fee_v2', jsonEncode(fee.toJson()));
+      } else {
+        // Fallback if it's somehow just a TuitionFee entity
+        final model = TuitionFeeModel(
+          totalPayable: fee.totalPayable,
+          totalPaid: fee.totalPaid,
+          remainingAmount: fee.remainingAmount,
+          items: fee.items,
+        );
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('cached_tuition_fee_v2', jsonEncode(model.toJson()));
+      }
+    } catch (e) {
+      // Ignore cache save errors
+    }
   }
 
   String _mapFailureToMessage(Failure failure) {
