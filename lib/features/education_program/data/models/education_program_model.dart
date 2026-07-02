@@ -34,4 +34,42 @@ class EducationProgramModel extends EducationProgram {
       subjects: subjects,
     );
   }
+
+  factory EducationProgramModel.fromCacheJson(Map<String, dynamic> json) {
+    final subjects = (json['subjects'] as List<dynamic>? ?? []).map((item) {
+      return ProgramSubject(
+        id: item['id'] as int? ?? 0,
+        code: item['code']?.toString() ?? '',
+        name: item['name']?.toString() ?? '',
+        credits: item['credits'] as int? ?? 0,
+        semesterIndex: item['semesterIndex'] as int? ?? 0,
+        knowledgeBlock: item['knowledgeBlock']?.toString() ?? '',
+        subjectType: item['subjectType'] as int? ?? 1,
+      );
+    }).toList();
+
+    return EducationProgramModel(
+      id: json['id'] as int? ?? 0,
+      name: json['name']?.toString() ?? '',
+      code: json['code']?.toString() ?? '',
+      subjects: subjects,
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'code': code,
+      'subjects': subjects.map((s) => {
+        'id': s.id,
+        'code': s.code,
+        'name': s.name,
+        'credits': s.credits,
+        'semesterIndex': s.semesterIndex,
+        'knowledgeBlock': s.knowledgeBlock,
+        'subjectType': s.subjectType,
+      }).toList(),
+    };
+  }
 }

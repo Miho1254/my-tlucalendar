@@ -18,6 +18,12 @@ abstract class ScheduleRepository {
   /// Get cached courses only (for offline)
   Future<Either<Failure, List<Course>>> getCachedCourses(int semesterId);
 
+  /// Get cached school years only (no network)
+  Future<Either<Failure, List<SchoolYear>>> getCachedSchoolYears();
+
+  /// Get cached course hours only (no network)
+  Future<Either<Failure, List<CourseHour>>> getCachedCourseHours();
+
   /// Get school years
   Future<Either<Failure, List<SchoolYear>>> getSchoolYears(String accessToken);
 

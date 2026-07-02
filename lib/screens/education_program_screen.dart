@@ -36,9 +36,6 @@ class _EducationProgramScreenState extends State<EducationProgramScreen>
     final token = authProvider.accessToken;
     if (token != null) {
       await provider.fetchProgram(token, forceRefresh: forceRefresh);
-      if (provider.program != null && mounted) {
-        _setupTabs(provider.program!);
-      }
     }
   }
 
@@ -115,16 +112,22 @@ class _EducationProgramScreenState extends State<EducationProgramScreen>
           final ctrl = _tabController;
 
           if (ctrl == null || ctrl.length != semesters.length) {
-            _setupTabs(program);
+            WidgetsBinding.instance.addPostFrameCallback((_) {
+              if (mounted) {
+                _setupTabs(program);
+                setState(() {});
+              }
+            });
+            return const Center(child: CircularProgressIndicator());
           }
 
           return Column(
             children: [
-              _buildProgramHeader(context, program),
+              _buildProgramInfo(context, program),
               _buildSemesterTabs(context, semesters, program),
               Expanded(
                 child: TabBarView(
-                  controller: _tabController,
+                  controller: ctrl,
                   children: semesters.map((semester) {
                     return _buildSemesterContent(context, program, semester);
                   }).toList(),
@@ -137,32 +140,25 @@ class _EducationProgramScreenState extends State<EducationProgramScreen>
     );
   }
 
-  Widget _buildProgramHeader(BuildContext context, EducationProgram program) {
+  Widget _buildProgramInfo(BuildContext context, EducationProgram program) {
     final theme = FTheme.of(context);
     final colors = theme.colors;
 
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: colors.primary.withValues(alpha: 0.1),
-        border: Border(
-          bottom: BorderSide(color: colors.border),
-        ),
-      ),
+    return Padding(
+      padding: const EdgeInsets.only(top: 8, bottom: 12),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             program.name,
             style: theme.typography.body.lg.copyWith(
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w700,
               color: colors.foreground,
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 2),
           Text(
-            '${program.totalCredits} tín chỉ • ${program.subjects.length} môn học',
+            '${program.totalCredits} tín chỉ · ${program.subjects.length} môn học',
             style: theme.typography.body.sm.copyWith(
               color: colors.mutedForeground,
             ),
@@ -277,15 +273,17 @@ class _EducationProgramScreenState extends State<EducationProgramScreen>
                 Expanded(
                   child: Text(
                     blockName,
-                    style: theme.typography.body.sm.copyWith(
-                      fontWeight: FontWeight.w600,
+                    style: theme.typography.body.md.copyWith(
+                      fontWeight: FontWeight.w700,
                       color: colors.foreground,
                     ),
                   ),
                 ),
-                FBadge(
-                  variant: FBadgeVariant.secondary,
-                  child: Text('$totalCredits TC'),
+                Text(
+                  '$totalCredits TC',
+                  style: theme.typography.body.xs.copyWith(
+                    color: colors.mutedForeground,
+                  ),
                 ),
               ],
             ),
@@ -299,7 +297,13 @@ class _EducationProgramScreenState extends State<EducationProgramScreen>
   Widget _buildSubjectItem(BuildContext context, ProgramSubject subject) {
     final theme = FTheme.of(context);
     final colors = theme.colors;
-    final isRequired = subject.subjectType == 1;
+
+    final (Color badgeBg, Color badgeFg) = switch (subject.subjectType) {
+      1 => (Colors.blue.withValues(alpha: 0.1), Colors.blue.shade600),
+      2 => (Colors.orange.withValues(alpha: 0.1), Colors.orange.shade600),
+      3 => (Colors.green.withValues(alpha: 0.1), Colors.green.shade600),
+      _ => (colors.muted, colors.mutedForeground),
+    };
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
@@ -340,15 +344,13 @@ class _EducationProgramScreenState extends State<EducationProgramScreen>
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                       decoration: BoxDecoration(
-                        color: isRequired
-                            ? Colors.blue.withValues(alpha: 0.1)
-                            : Colors.orange.withValues(alpha: 0.1),
+                        color: badgeBg,
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
                         subject.subjectTypeLabel,
                         style: theme.typography.body.xs.copyWith(
-                          color: isRequired ? Colors.blue.shade600 : Colors.orange.shade600,
+                          color: badgeFg,
                           fontWeight: FontWeight.w500,
                         ),
                       ),

@@ -88,6 +88,26 @@ class ScheduleRepositoryImpl implements ScheduleRepository {
   }
 
   @override
+  Future<Either<Failure, List<SchoolYear>>> getCachedSchoolYears() async {
+    try {
+      final years = await localDataSource.getCachedSchoolYears();
+      return Right(years);
+    } catch (e) {
+      return Left(CacheFailure(e.toString()));
+    }
+  }
+
+  @override
+  Future<Either<Failure, List<CourseHour>>> getCachedCourseHours() async {
+    try {
+      final hours = await localDataSource.getCachedCourseHours();
+      return Right(hours);
+    } catch (e) {
+      return Left(CacheFailure(e.toString()));
+    }
+  }
+
+  @override
   Future<Either<Failure, List<SchoolYear>>> getSchoolYears(
     String accessToken,
   ) async {

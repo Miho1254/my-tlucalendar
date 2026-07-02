@@ -594,8 +594,8 @@ class NotificationService {
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
         payload: payload,
       );
-    } catch (e) {
-      debugPrint('Failed to schedule notification (platform might not support it): $e');
+    } catch (_) {
+      // Platform might not support zonedSchedule (e.g. Linux, web)
     }
   }
 

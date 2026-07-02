@@ -1,6 +1,9 @@
+import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tlucalendar/core/error/failures.dart';
 import 'package:tlucalendar/features/education_program/domain/entities/education_program.dart';
+import 'package:tlucalendar/features/education_program/data/models/education_program_model.dart';
 import 'package:tlucalendar/features/education_program/domain/usecases/get_education_program.dart';
 import 'package:tlucalendar/providers/auth_provider.dart';
 
@@ -30,10 +33,26 @@ class EducationProgramProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> loadCachedProgram() async {
+    if (_program != null) return;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final cachedString = prefs.getString('cached_education_program');
+      if (cachedString != null) {
+        _program = EducationProgramModel.fromCacheJson(jsonDecode(cachedString));
+        notifyListeners();
+      }
+    } catch (e) {
+      // Ignore cache load errors
+    }
+  }
+
   Future<void> fetchProgram(String accessToken, {bool forceRefresh = false}) async {
     _errorMessage = null;
 
-    if (forceRefresh) {
+    await loadCachedProgram();
+
+    if (forceRefresh || _program == null) {
       _isLoading = true;
       notifyListeners();
     }
@@ -45,28 +64,57 @@ class EducationProgramProvider extends ChangeNotifier {
     await result.fold(
       (failure) async {
         if (_authProvider != null && await _authProvider!.reLogin()) {
-          final newResult = await getEducationProgramUseCase(
-            GetEducationProgramParams(accessToken: _authProvider!.accessToken!),
-          );
-          newResult.fold(
-            (f) {
-              _errorMessage = _mapFailureToMessage(f);
-            },
-            (program) {
-              _program = program;
-            },
-          );
+          final newToken = _authProvider!.accessToken;
+          if (newToken == null) {
+            _errorMessage = _mapFailureToMessage(failure);
+          } else {
+            final newResult = await getEducationProgramUseCase(
+              GetEducationProgramParams(accessToken: newToken),
+            );
+            newResult.fold(
+              (f) {
+                _errorMessage = _mapFailureToMessage(f);
+              },
+              (program) {
+                _program = program;
+                _saveToCache(program);
+              },
+            );
+          }
         } else {
-          _errorMessage = _mapFailureToMessage(failure);
+          if (_program == null || forceRefresh) {
+            _errorMessage = _mapFailureToMessage(failure);
+          }
         }
       },
       (program) async {
         _program = program;
+        _saveToCache(program);
       },
     );
 
     _isLoading = false;
     notifyListeners();
+  }
+
+  Future<void> _saveToCache(EducationProgram program) async {
+    try {
+      if (program is EducationProgramModel) {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('cached_education_program', jsonEncode(program.toJson()));
+      } else {
+        final model = EducationProgramModel(
+          id: program.id,
+          name: program.name,
+          code: program.code,
+          subjects: program.subjects,
+        );
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('cached_education_program', jsonEncode(model.toJson()));
+      }
+    } catch (e) {
+      // Ignore cache save errors
+    }
   }
 
   String _mapFailureToMessage(Failure failure) {

@@ -54,10 +54,38 @@ class _TodayScreenState extends State<TodayScreen> {
   }
 
   String _getGreeting() {
-    final hour = VnTime.now().hour;
+    final hour = DateTime.now().hour;
     if (hour < 12) return 'Chào buổi sáng';
     if (hour < 18) return 'Chào buổi chiều';
     return 'Chào buổi tối';
+  }
+
+  /// Extracts the Vietnamese first name (with compound name support).
+  /// e.g. "Nguyễn Mai Anh" → "Mai Anh", "Trần Văn A" → "A"
+  static String? _getVietnameseFirstName(String fullName) {
+    final parts = fullName.trim().split(RegExp(r'\s+'));
+    if (parts.isEmpty) return null;
+    if (parts.length == 1) return parts.last;
+
+    final lastWord = parts.last;
+
+    // Compound name endings that need the preceding word too
+    const compoundEndings = {
+      'Anh', 'Nhi', 'Vy', 'Vi', 'Tiên', 'Bảo',
+      'Nguyên', 'Ân', 'Tú', 'Linh', 'Hà', 'Khuê', 'San',
+    };
+
+    if (compoundEndings.contains(lastWord) && parts.length >= 2) {
+      final prevWord = parts[parts.length - 2];
+      // Skip middle names that are gender markers (Thị, Văn, Hữu, etc.)
+      const genderMarkers = {'Thị', 'Văn', 'Hữu', 'Đình', 'Ngọc'};
+      if (genderMarkers.contains(prevWord)) {
+        return lastWord;
+      }
+      return '$prevWord $lastWord';
+    }
+
+    return lastWord;
   }
 
   @override
@@ -97,7 +125,7 @@ class _TodayScreenState extends State<TodayScreen> {
         );
 
         final userName =
-            authProvider.currentUser?.fullName.split(' ').last ?? 'bạn';
+            _getVietnameseFirstName(authProvider.currentUser?.fullName ?? '') ?? 'bạn';
 
         return RefreshIndicator(
           onRefresh: () async {

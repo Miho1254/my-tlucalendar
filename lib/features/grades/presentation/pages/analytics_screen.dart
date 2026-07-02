@@ -71,6 +71,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             }
 
             return FTabs(
+              scrollable: true,
               expands: true,
               children: [
                 FTabEntry(

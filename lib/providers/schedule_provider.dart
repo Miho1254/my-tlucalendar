@@ -76,6 +76,37 @@ class ScheduleProvider extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> _loadCachedData() async {
+    try {
+      final yearsResult = await scheduleRepository.getCachedSchoolYears();
+      yearsResult.fold((_) {}, (years) {
+        if (years.isNotEmpty) {
+          _processSchoolYears(years);
+        }
+      });
+
+      final hoursResult = await scheduleRepository.getCachedCourseHours();
+      hoursResult.fold((_) {}, (hours) {
+        _courseHours = hours;
+      });
+
+      // Load cached schedule for current semester
+      if (_currentSemester != null) {
+        final cachedCourses = await scheduleRepository.getCachedCourses(_currentSemester!.id);
+        cachedCourses.fold((_) {}, (courses) {
+          _courses = courses;
+        });
+      }
+
+      if (_schoolYears.isNotEmpty || _courses.isNotEmpty) {
+        _isOfflineMode = true;
+        notifyListeners();
+      }
+    } catch (_) {
+      // Ignore cache load errors
+    }
+  }
+
   // Init Data
   Future<void> init(String accessToken) async {
     _isLoading = true;
@@ -84,6 +115,9 @@ class ScheduleProvider extends ChangeNotifier {
     _isReconnecting = false;
     _isRefreshing = false;
     notifyListeners();
+
+    // 0. Load cache first — show data immediately
+    await _loadCachedData();
 
     String currentToken = accessToken;
 
