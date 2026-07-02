@@ -14,7 +14,7 @@ class EducationProgramScreen extends StatefulWidget {
 
 class _EducationProgramScreenState extends State<EducationProgramScreen>
     with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+  TabController? _tabController;
 
   @override
   void initState() {
@@ -26,7 +26,7 @@ class _EducationProgramScreenState extends State<EducationProgramScreen>
 
   @override
   void dispose() {
-    _tabController.dispose();
+    _tabController?.dispose();
     super.dispose();
   }
 
@@ -43,6 +43,7 @@ class _EducationProgramScreenState extends State<EducationProgramScreen>
   }
 
   void _setupTabs(EducationProgram program) {
+    if (!mounted) return;
     final semesters = program.subjectsBySemester.keys.toList()..sort();
     _tabController = TabController(length: semesters.length, vsync: this);
   }
@@ -110,8 +111,9 @@ class _EducationProgramScreenState extends State<EducationProgramScreen>
           }
 
           final semesters = program.subjectsBySemester.keys.toList()..sort();
+          final ctrl = _tabController;
 
-          if (_tabController == null || _tabController.length != semesters.length) {
+          if (ctrl == null || ctrl.length != semesters.length) {
             _setupTabs(program);
           }
 
@@ -181,7 +183,7 @@ class _EducationProgramScreenState extends State<EducationProgramScreen>
         ),
       ),
       child: TabBar(
-        controller: _tabController,
+        controller: _tabController!,
         isScrollable: true,
         labelColor: colors.primary,
         unselectedLabelColor: colors.mutedForeground,
