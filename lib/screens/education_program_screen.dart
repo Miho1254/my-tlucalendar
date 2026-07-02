@@ -13,7 +13,7 @@ class EducationProgramScreen extends StatefulWidget {
 }
 
 class _EducationProgramScreenState extends State<EducationProgramScreen>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   TabController? _tabController;
 
   @override
@@ -44,6 +44,7 @@ class _EducationProgramScreenState extends State<EducationProgramScreen>
 
   void _setupTabs(EducationProgram program) {
     if (!mounted) return;
+    _tabController?.dispose();
     final semesters = program.subjectsBySemester.keys.toList()..sort();
     _tabController = TabController(length: semesters.length, vsync: this);
   }
