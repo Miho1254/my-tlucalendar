@@ -25,6 +25,7 @@ class TuitionItem extends Equatable {
   final double amountPaid;
   final String note;
   final bool isComplete;
+  final bool isPending;
   final List<TuitionDetail> details;
 
   const TuitionItem({
@@ -35,13 +36,14 @@ class TuitionItem extends Equatable {
     required this.amountPaid,
     required this.note,
     required this.isComplete,
+    required this.isPending,
     required this.details,
   });
 
   double get remaining => amount - amountPaid;
 
   @override
-  List<Object?> get props => [id, semesterName, periodName, amount, amountPaid, note, isComplete, details];
+  List<Object?> get props => [id, semesterName, periodName, amount, amountPaid, note, isComplete, isPending, details];
 }
 
 class TuitionDetail extends Equatable {

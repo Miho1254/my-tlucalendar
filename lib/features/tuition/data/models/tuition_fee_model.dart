@@ -12,7 +12,7 @@ class TuitionFeeModel extends TuitionFee {
     final receiveAbleDtos = json['receiveAbleDtos'] as List<dynamic>? ?? [];
     final receiveAbleNotCompleteDtos = json['receiveAbleNotCompleteDtos'] as List<dynamic>? ?? [];
 
-    List<TuitionItem> parseItems(List<dynamic> dtos) {
+    List<TuitionItem> parseItems(List<dynamic> dtos, {bool isPending = false}) {
       return dtos.map<TuitionItem>((dto) {
         final semester = dto['semester'] as Map<String, dynamic>?;
         final registerPeriod = dto['registerPeriod'] as Map<String, dynamic>?;
@@ -34,6 +34,7 @@ class TuitionFeeModel extends TuitionFee {
           amountPaid: (dto['amountReceived'] as num?)?.toDouble() ?? 0,
           note: dto['note']?.toString() ?? '',
           isComplete: dto['isComplete'] as bool? ?? false,
+          isPending: isPending,
           details: details,
         );
       }).toList();
@@ -41,7 +42,7 @@ class TuitionFeeModel extends TuitionFee {
 
     final items = [
       ...parseItems(receiveAbleDtos),
-      ...parseItems(receiveAbleNotCompleteDtos),
+      ...parseItems(receiveAbleNotCompleteDtos, isPending: true),
     ];
 
     return TuitionFeeModel(

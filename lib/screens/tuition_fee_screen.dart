@@ -99,8 +99,8 @@ class _TuitionFeeScreenState extends State<TuitionFeeScreen> {
               return const Center(child: Text('Không có dữ liệu'));
             }
 
-            final paidItems = fee.items.where((i) => i.isComplete || i.remaining <= 0).toList();
-            final unpaidItems = fee.items.where((i) => !i.isComplete && i.remaining > 0).toList();
+            final paidItems = fee.items.where((i) => !i.isPending).toList();
+            final unpaidItems = fee.items.where((i) => i.isPending).toList();
 
             return RefreshIndicator(
               onRefresh: () => _fetchTuitionFee(forceRefresh: true),
