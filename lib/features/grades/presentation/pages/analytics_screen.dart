@@ -71,11 +71,10 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
             }
 
             return FTabs(
-              scrollable: true,
               expands: true,
               children: [
                 FTabEntry(
-                  label: const Text('Tổng quan'),
+                  label: const Text('Tổng quan', maxLines: 1, overflow: TextOverflow.ellipsis),
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
                     child: Column(
@@ -92,7 +91,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                   ),
                 ),
                 FTabEntry(
-                  label: const Text('Phân tích'),
+                  label: const Text('Phân tích', maxLines: 1, overflow: TextOverflow.ellipsis),
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
                     child: Column(
@@ -109,7 +108,7 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
                   ),
                 ),
                 FTabEntry(
-                  label: const Text('Công cụ'),
+                  label: const Text('Công cụ', maxLines: 1, overflow: TextOverflow.ellipsis),
                   child: SingleChildScrollView(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
                     child: Column(
