@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:forui/forui.dart';
-import 'package:forui_assets/forui_assets.dart';
 import 'package:tlucalendar/providers/auth_provider.dart';
 import 'package:tlucalendar/providers/tuition_provider.dart';
 import 'package:tlucalendar/features/tuition/domain/entities/tuition_fee.dart';
@@ -104,21 +103,48 @@ class _TuitionFeeScreenState extends State<TuitionFeeScreen> {
 
             return RefreshIndicator(
               onRefresh: () => _fetchTuitionFee(forceRefresh: true),
-              child: FTabs(
-                expands: true,
+              child: ListView(
+                physics: const AlwaysScrollableScrollPhysics(),
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
                 children: [
-                  FTabEntry(
-                    label: const Text('Tổng quan'),
-                    child: _buildOverviewTab(context, fee),
-                  ),
-                  FTabEntry(
-                    label: Text('Khoản nợ${unpaidItems.isNotEmpty ? " (${unpaidItems.length})" : ""}'),
-                    child: _buildDebtTab(context, fee, unpaidItems),
-                  ),
-                  FTabEntry(
-                    label: const Text('Lịch sử'),
-                    child: _buildHistoryTab(context, paidItems),
-                  ),
+                  _buildHeroCard(context, fee.remainingAmount),
+                  const SizedBox(height: 16),
+                  
+                  _buildStatsRow(context, fee),
+                  const SizedBox(height: 32),
+                  
+                  if (unpaidItems.isNotEmpty) ...[
+                    Text(
+                      'Cần thanh toán',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    FCard(
+                      child: Column(
+                        children: unpaidItems.asMap().entries.map((entry) {
+                          final isLast = entry.key == unpaidItems.length - 1;
+                          return _buildDebtItem(context, entry.value, isLast);
+                        }).toList(),
+                      ),
+                    ),
+                    const SizedBox(height: 32),
+                  ],
+                  
+                  if (paidItems.isNotEmpty) ...[
+                    Text(
+                      'Lịch sử giao dịch',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    FAccordion(
+                      children: paidItems.map((item) => _buildHistoryAccordionItem(context, item)).toList(),
+                    ),
+                  ],
+                  const SizedBox(height: 32),
                 ],
               ),
             );
@@ -128,138 +154,157 @@ class _TuitionFeeScreenState extends State<TuitionFeeScreen> {
     );
   }
 
-  Widget _buildOverviewTab(BuildContext context, TuitionFee fee) {
+  Widget _buildHeroCard(BuildContext context, double remainingAmount) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
-    final isPaid = fee.remainingAmount <= 0;
+    final isPaid = remainingAmount <= 0;
 
-    return SingleChildScrollView(
-      physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+    if (isPaid) {
+      return Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: colors.primaryContainer.withValues(alpha: 0.3),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: colors.primary.withValues(alpha: 0.2)),
+        ),
+        child: Column(
+          children: [
+            Icon(FLucideIcons.checkCircle, color: colors.primary, size: 48),
+            const SizedBox(height: 16),
+            Text(
+              'Đã hoàn thành học phí!',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+                color: colors.primary,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(24),
+      decoration: BoxDecoration(
+        color: colors.errorContainer.withValues(alpha: 0.3),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: colors.error.withValues(alpha: 0.2)),
+      ),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          FCard(
-            title: const Text('Học phí đã đóng'),
-            subtitle: const Text('Tổng hợp các kỳ đã đóng'),
+          Row(
+            children: [
+              Icon(FLucideIcons.alertCircle, color: colors.error, size: 24),
+              const SizedBox(width: 8),
+              Text(
+                'TỔNG DƯ NỢ',
+                style: theme.textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w600,
+                  color: colors.error,
+                  letterSpacing: 1.1,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            _formatCurrency(remainingAmount),
+            style: theme.textTheme.displaySmall?.copyWith(
+              fontWeight: FontWeight.bold,
+              color: colors.error,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Vui lòng thanh toán sớm để không ảnh hưởng đến việc học.',
+            style: theme.textTheme.bodySmall?.copyWith(
+              color: colors.error.withValues(alpha: 0.8),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildStatsRow(BuildContext context, TuitionFee fee) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    
+    return Row(
+      children: [
+        Expanded(
+          child: FCard(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  _formatCurrency(fee.totalPaid),
-                  style: theme.textTheme.displaySmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                    color: colors.primary,
+                  'Tổng học phí',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: colors.onSurfaceVariant,
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Đã đóng',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: colors.onSurfaceVariant,
+                  _formatCurrency(fee.totalPayable),
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 16),
-          if (!isPaid) ...[
-            FAlert(
-              variant: FAlertVariant.destructive,
-              icon: const Icon(FLucideIcons.alertTriangle),
-              title: Text('Còn nợ ${_formatCurrency(fee.remainingAmount)}'),
-              subtitle: const Text('Vui lòng đóng học phí đúng hạn'),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: FCard(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Đã thanh toán',
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: colors.onSurfaceVariant,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  _formatCurrency(fee.totalPaid),
+                  style: theme.textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.bold,
+                    color: colors.primary,
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 16),
-          ],
-          Row(
-            children: [
-              Expanded(
-                child: FCard(
-                  title: const Text('Tổng HP'),
-                  child: Text(
-                    _formatCurrency(fee.totalPayable),
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: FCard(
-                  title: const Text('Còn nợ'),
-                  child: Text(
-                    _formatCurrency(fee.remainingAmount),
-                    style: theme.textTheme.headlineSmall?.copyWith(
-                      fontWeight: FontWeight.bold,
-                      color: isPaid ? colors.onSurface : colors.error,
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 32),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildDebtTab(BuildContext context, TuitionFee fee, List<TuitionItem> unpaidItems) {
-    final theme = Theme.of(context);
-
-    if (unpaidItems.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              FAlert(
-                variant: FAlertVariant.primary,
-                icon: const Icon(FLucideIcons.checkCircle),
-                title: const Text('Bạn đã đóng đủ học phí!'),
-                subtitle: const Text('Không có khoản nợ nào'),
-              ),
-            ],
           ),
         ),
-      );
-    }
-
-    return SingleChildScrollView(
-      physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          FCard(
-            title: const Text('Khoản cần đóng'),
-            subtitle: Text('${unpaidItems.length} khoản chưa thanh toán'),
-            child: Column(
-              children: unpaidItems.map((item) => _buildDebtItem(context, item)).toList(),
-            ),
-          ),
-          const SizedBox(height: 32),
-        ],
-      ),
+      ],
     );
   }
 
-  Widget _buildDebtItem(BuildContext context, TuitionItem item) {
+  Widget _buildDebtItem(BuildContext context, TuitionItem item, bool isLast) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
 
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 12),
       decoration: BoxDecoration(
-        border: Border(
-          bottom: BorderSide(color: colors.outline.withValues(alpha: 0.3)),
+        border: isLast ? null : Border(
+          bottom: BorderSide(color: colors.outline.withValues(alpha: 0.2)),
         ),
       ),
       child: Row(
         children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: colors.errorContainer.withValues(alpha: 0.3),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(FLucideIcons.creditCard, size: 20, color: colors.error),
+          ),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -267,11 +312,11 @@ class _TuitionFeeScreenState extends State<TuitionFeeScreen> {
                 Text(
                   item.note.isNotEmpty ? item.note : 'Học phí',
                   style: theme.textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w500,
+                    fontWeight: FontWeight.w600,
                   ),
                 ),
                 if (item.periodName.isNotEmpty) ...[
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 2),
                   Text(
                     item.periodName,
                     style: theme.textTheme.bodySmall?.copyWith(
@@ -294,40 +339,7 @@ class _TuitionFeeScreenState extends State<TuitionFeeScreen> {
     );
   }
 
-  Widget _buildHistoryTab(BuildContext context, List<TuitionItem> paidItems) {
-    final theme = Theme.of(context);
-
-    if (paidItems.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              const Icon(FLucideIcons.receipt, size: 64),
-              const SizedBox(height: 16),
-              Text(
-                'Chưa có lịch sử đóng học phí',
-                style: theme.textTheme.bodyLarge?.copyWith(
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    return SingleChildScrollView(
-      physics: const AlwaysScrollableScrollPhysics(),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-      child: FAccordion(
-        children: paidItems.map((item) => _buildHistoryAccordionItem(context, item)).toList(),
-      ),
-    );
-  }
-
-  Widget _buildHistoryAccordionItem(BuildContext context, TuitionItem item) {
+  FAccordionItem _buildHistoryAccordionItem(BuildContext context, TuitionItem item) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
 
