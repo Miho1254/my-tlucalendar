@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:forui/forui.dart';
 import 'package:tlucalendar/providers/auth_provider.dart';
 import 'package:tlucalendar/providers/education_program_provider.dart';
+import 'package:tlucalendar/providers/grade_provider.dart';
 import 'package:tlucalendar/features/education_program/domain/entities/education_program.dart';
 
 class EducationProgramScreen extends StatefulWidget {
@@ -44,6 +45,11 @@ class _EducationProgramScreenState extends State<EducationProgramScreen>
     _tabController?.dispose();
     final semesters = program.subjectsBySemester.keys.toList()..sort();
     _tabController = TabController(length: semesters.length, vsync: this);
+  }
+
+  Set<String> _getStudiedCodes(BuildContext context) {
+    final gradeProvider = Provider.of<GradeProvider>(context, listen: false);
+    return gradeProvider.grades.map((g) => g.subjectCode).toSet();
   }
 
   @override
@@ -121,15 +127,17 @@ class _EducationProgramScreenState extends State<EducationProgramScreen>
             return const Center(child: CircularProgressIndicator());
           }
 
+          final studiedCodes = _getStudiedCodes(context);
+
           return Column(
             children: [
-              _buildProgramInfo(context, program),
+              _buildProgramInfo(context, program, studiedCodes),
               _buildSemesterTabs(context, semesters, program),
               Expanded(
                 child: TabBarView(
                   controller: ctrl,
                   children: semesters.map((semester) {
-                    return _buildSemesterContent(context, program, semester);
+                    return _buildSemesterContent(context, program, semester, studiedCodes);
                   }).toList(),
                 ),
               ),
@@ -140,7 +148,7 @@ class _EducationProgramScreenState extends State<EducationProgramScreen>
     );
   }
 
-  Widget _buildProgramInfo(BuildContext context, EducationProgram program) {
+  Widget _buildProgramInfo(BuildContext context, EducationProgram program, Set<String> studiedCodes) {
     final theme = FTheme.of(context);
     final colors = theme.colors;
 
@@ -158,7 +166,7 @@ class _EducationProgramScreenState extends State<EducationProgramScreen>
           ),
           const SizedBox(height: 2),
           Text(
-            '${program.totalCredits} tín chỉ · ${program.subjects.length} môn học',
+            '${program.totalCredits} tín chỉ · ${program.subjects.length} môn học · ${studiedCodes.length} đã học',
             style: theme.typography.body.sm.copyWith(
               color: colors.mutedForeground,
             ),
@@ -211,7 +219,7 @@ class _EducationProgramScreenState extends State<EducationProgramScreen>
     );
   }
 
-  Widget _buildSemesterContent(BuildContext context, EducationProgram program, int semester) {
+  Widget _buildSemesterContent(BuildContext context, EducationProgram program, int semester, Set<String> studiedCodes) {
     final theme = FTheme.of(context);
     final colors = theme.colors;
     final subjects = program.subjectsBySemester[semester] ?? [];
@@ -242,13 +250,13 @@ class _EducationProgramScreenState extends State<EducationProgramScreen>
           final blockName = grouped.keys.elementAt(index);
           final blockSubjects = grouped[blockName]!;
 
-          return _buildKnowledgeBlock(context, blockName, blockSubjects);
+          return _buildKnowledgeBlock(context, blockName, blockSubjects, studiedCodes);
         },
       ),
     );
   }
 
-  Widget _buildKnowledgeBlock(BuildContext context, String blockName, List<ProgramSubject> subjects) {
+  Widget _buildKnowledgeBlock(BuildContext context, String blockName, List<ProgramSubject> subjects, Set<String> studiedCodes) {
     final theme = FTheme.of(context);
     final colors = theme.colors;
     final totalCredits = subjects.fold(0, (sum, s) => sum + s.credits);
@@ -288,15 +296,16 @@ class _EducationProgramScreenState extends State<EducationProgramScreen>
               ],
             ),
           ),
-          ...subjects.map((subject) => _buildSubjectItem(context, subject)),
+          ...subjects.map((subject) => _buildSubjectItem(context, subject, studiedCodes)),
         ],
       ),
     );
   }
 
-  Widget _buildSubjectItem(BuildContext context, ProgramSubject subject) {
+  Widget _buildSubjectItem(BuildContext context, ProgramSubject subject, Set<String> studiedCodes) {
     final theme = FTheme.of(context);
     final colors = theme.colors;
+    final isStudied = studiedCodes.contains(subject.code);
 
     final (Color badgeBg, Color badgeFg) = switch (subject.subjectType) {
       1 => (Colors.blue.withValues(alpha: 0.1), Colors.blue.shade600),
@@ -318,18 +327,12 @@ class _EducationProgramScreenState extends State<EducationProgramScreen>
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        subject.name,
-                        style: theme.typography.body.sm.copyWith(
-                          fontWeight: FontWeight.w500,
-                          color: colors.foreground,
-                        ),
-                      ),
-                    ),
-                  ],
+                Text(
+                  subject.name,
+                  style: theme.typography.body.sm.copyWith(
+                    fontWeight: FontWeight.w500,
+                    color: isStudied ? Colors.green.shade700 : colors.foreground,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Row(
@@ -357,6 +360,16 @@ class _EducationProgramScreenState extends State<EducationProgramScreen>
                     ),
                   ],
                 ),
+                if (isStudied) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    'Đã học',
+                    style: theme.typography.body.xs.copyWith(
+                      color: Colors.green.shade600,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
               ],
             ),
           ),
@@ -366,14 +379,14 @@ class _EducationProgramScreenState extends State<EducationProgramScreen>
             height: 36,
             alignment: Alignment.center,
             decoration: BoxDecoration(
-              color: colors.muted.withValues(alpha: 0.5),
+              color: isStudied ? Colors.green.withValues(alpha: 0.1) : colors.muted.withValues(alpha: 0.5),
               shape: BoxShape.circle,
             ),
             child: Text(
               '${subject.credits}',
               style: theme.typography.body.sm.copyWith(
                 fontWeight: FontWeight.bold,
-                color: colors.foreground,
+                color: isStudied ? Colors.green.shade700 : colors.foreground,
               ),
             ),
           ),
