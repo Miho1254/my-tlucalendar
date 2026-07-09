@@ -27,6 +27,29 @@ class NetworkClient {
     // Register Custom Transformer for Brotli
     _dio.transformer = DioBrotliTransformer();
 
+    // Intercept invalid_token responses and convert to DioException
+    _dio.interceptors.add(
+      InterceptorsWrapper(
+        onResponse: (response, handler) {
+          final data = response.data;
+          if (data is String && data.trimLeft().startsWith('{')) {
+            if (data.contains('"error"') && data.contains('invalid_token')) {
+              handler.reject(
+                DioException(
+                  requestOptions: response.requestOptions,
+                  response: response,
+                  type: DioExceptionType.badResponse,
+                  error: 'invalid_token',
+                ),
+              );
+              return;
+            }
+          }
+          handler.next(response);
+        },
+      ),
+    );
+
     // Aggressive Retry Strategy for High Load
     _dio.interceptors.add(
       RetryInterceptor(

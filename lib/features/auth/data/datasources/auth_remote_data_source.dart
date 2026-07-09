@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:dio/dio.dart';
 import 'package:tlucalendar/core/error/failures.dart';
 import 'package:tlucalendar/core/network/network_client.dart';
@@ -43,6 +44,22 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
       if (response.statusCode == 200) {
         final data = NativeParser.parseToken(response.data as String);
         if (data == null || data['access_token'] == null) {
+          // Try to extract error description from the response
+          final raw = response.data as String;
+          String detail = '';
+          try {
+            final trimmed = raw.trimLeft();
+            if (trimmed.startsWith('{')) {
+              final decoded = jsonDecode(raw) as Map<String, dynamic>;
+              detail = decoded['error_description']?.toString() ??
+                  decoded['error']?.toString() ??
+                  '';
+            }
+          } catch (_) {}
+
+          if (detail.isNotEmpty) {
+            throw ServerFailure(_mapLoginError(detail));
+          }
           throw ServerFailure(
             'Lỗi máy chủ: Không nhận được mã truy cập hợp lệ từ hệ thống.',
           );
@@ -50,12 +67,12 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         return data;
       } else {
         throw ServerFailure(
-          'Login failed: ${response.statusCode}, Body: ${response.data}',
+          'Không thể kết nối đến máy chủ (Mã lỗi: ${response.statusCode})',
         );
       }
     } catch (e) {
-      if (e is Failure) rethrow; // Pass through known failures
-      throw ServerFailure('Login error: $e');
+      if (e is Failure) rethrow;
+      throw ServerFailure('Lỗi đăng nhập: $e');
     }
   }
 
@@ -85,7 +102,28 @@ class AuthRemoteDataSourceImpl implements AuthRemoteDataSource {
         throw ServerFailure('Get User failed: ${response.statusCode}');
       }
     } catch (e) {
-      throw ServerFailure('Get User error: $e');
+      throw ServerFailure('Lỗi lấy thông tin người dùng: $e');
     }
+  }
+
+  static String _mapLoginError(String detail) {
+    final lower = detail.toLowerCase();
+    if (lower.contains('disabled') || lower.contains('vô hiệu')) {
+      return 'Tài khoản đã bị vô hiệu hóa. Liên hệ phòng CTSV tại cơ sở để được hỗ trợ.';
+    }
+    if (lower.contains('invalid_grant') ||
+        lower.contains('invalid') && lower.contains('credential')) {
+      return 'Mã sinh viên hoặc mật khẩu không đúng.';
+    }
+    if (lower.contains('expired') || lower.contains('hết hạn')) {
+      return 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.';
+    }
+    if (lower.contains('locked') || lower.contains('khóa')) {
+      return 'Tài khoản đã bị khóa. Liên hệ phòng CTSV tại cơ sở.';
+    }
+    if (lower.contains('network') || lower.contains('timeout')) {
+      return 'Lỗi mạng. Kiểm tra kết nối internet và thử lại.';
+    }
+    return 'Đăng nhập thất bại: $detail';
   }
 }

@@ -129,7 +129,7 @@ class _SetupWizardScreenState extends State<SetupWizardScreen> {
       _nextPage();
     } catch (e) {
       setState(
-        () => _errorMessage = e.toString().replaceAll('Exception: ', ''),
+        () => _errorMessage = 'Đăng nhập thất bại. Vui lòng thử lại.',
       );
     } finally {
       if (mounted) {

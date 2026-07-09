@@ -155,7 +155,7 @@ class AuthProvider extends ChangeNotifier {
         },
       );
     } catch (e) {
-      _errorMessage = e.toString();
+      _errorMessage = 'Đăng nhập thất bại. Vui lòng thử lại.';
       _isLoading = false;
       notifyListeners();
       return false;

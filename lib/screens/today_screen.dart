@@ -33,7 +33,6 @@ class _TodayScreenState extends State<TodayScreen> {
     super.initState();
     _currentDate = VnTime.now();
 
-    // Update every minute (sufficient for class status updates)
     _timer = Timer.periodic(const Duration(minutes: 1), (timer) {
       final now = VnTime.now();
       if (now.day != _currentDate.day ||
@@ -53,15 +52,19 @@ class _TodayScreenState extends State<TodayScreen> {
     super.dispose();
   }
 
+  void _navigateDay(int delta) {
+    setState(() {
+      _currentDate = _currentDate.add(Duration(days: delta));
+    });
+  }
+
   String _getGreeting() {
-    final hour = DateTime.now().hour;
+    final hour = VnTime.now().hour;
     if (hour < 12) return 'Chào buổi sáng';
     if (hour < 18) return 'Chào buổi chiều';
     return 'Chào buổi tối';
   }
 
-  /// Extracts the Vietnamese first name (with compound name support).
-  /// e.g. "Nguyễn Mai Anh" → "Mai Anh", "Trần Văn A" → "A"
   static String? _getVietnameseFirstName(String fullName) {
     final parts = fullName.trim().split(RegExp(r'\s+'));
     if (parts.isEmpty) return null;
@@ -69,7 +72,6 @@ class _TodayScreenState extends State<TodayScreen> {
 
     final lastWord = parts.last;
 
-    // Compound name endings that need the preceding word too
     const compoundEndings = {
       'Anh', 'Nhi', 'Vy', 'Vi', 'Tiên', 'Bảo',
       'Nguyên', 'Ân', 'Tú', 'Linh', 'Hà', 'Khuê', 'San',
@@ -77,7 +79,6 @@ class _TodayScreenState extends State<TodayScreen> {
 
     if (compoundEndings.contains(lastWord) && parts.length >= 2) {
       final prevWord = parts[parts.length - 2];
-      // Skip middle names that are gender markers (Thị, Văn, Hữu, etc.)
       const genderMarkers = {'Thị', 'Văn', 'Hữu', 'Đình', 'Ngọc'};
       if (genderMarkers.contains(prevWord)) {
         return lastWord;
@@ -91,15 +92,19 @@ class _TodayScreenState extends State<TodayScreen> {
   @override
   Widget build(BuildContext context) {
     final today = VnTime.now();
-    final dayName = _getDayOfWeek(today.weekday);
-    final dateFormat = '$dayName, ${today.day}/${today.month}';
+    final isViewingToday =
+        _currentDate.day == today.day &&
+        _currentDate.month == today.month &&
+        _currentDate.year == today.year;
+    final dayName = _getDayOfWeek(_currentDate.weekday);
+    final dateFormat = '$dayName, ${_currentDate.day}/${_currentDate.month}';
 
     return Consumer2<AuthProvider, ScheduleProvider>(
       builder: (context, authProvider, scheduleProvider, _) {
         if (!authProvider.isLoggedIn) {
           return const Center(
             child: EmptyStateWidget(
-              icon: Icons.lock_outlined,
+              icon: FLucideIcons.lock,
               title: 'Vui lòng đăng nhập',
               description: 'Đăng nhập để xem lịch học của bạn',
             ),
@@ -117,28 +122,74 @@ class _TodayScreenState extends State<TodayScreen> {
           );
         }
 
-        final activeCourses = scheduleProvider.getActiveCourses(today);
-        // todayWeekIndex logic handled inside getActiveCourses
+        // P0: Error state — distinguish "no classes" from "API failed"
+        if (scheduleProvider.errorMessage != null) {
+          return Center(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    FLucideIcons.alertTriangle,
+                    size: 48,
+                    color: Theme.of(context).colorScheme.error,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Không thể tải lịch học',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    scheduleProvider.errorMessage!,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                  const SizedBox(height: 20),
+                  FButton(
+                    onPress: () {
+                      if (authProvider.accessToken != null &&
+                          scheduleProvider.currentSemester != null) {
+                        scheduleProvider.loadSchedule(
+                          authProvider.accessToken!,
+                          scheduleProvider.currentSemester!.id,
+                          forceRefresh: true,
+                        );
+                      }
+                    },
+                    child: const Text('Thử lại'),
+                  ),
+                ],
+              ),
+            ),
+          );
+        }
+
+        final activeCourses = scheduleProvider.getActiveCourses(_currentDate);
         final todaySchedules = activeCourses;
         todaySchedules.sort(
           (a, b) => a.startCourseHour.compareTo(b.startCourseHour),
         );
 
         final userName =
-            _getVietnameseFirstName(authProvider.currentUser?.fullName ?? '') ?? 'bạn';
+            _getVietnameseFirstName(authProvider.currentUser?.fullName ?? '') ??
+            'bạn';
 
         return RefreshIndicator(
           onRefresh: () async {
             if (authProvider.accessToken != null &&
                 scheduleProvider.currentSemester != null) {
-              // Refresh schedule (await — blocks UI until done)
               await scheduleProvider.loadSchedule(
                 authProvider.accessToken!,
                 scheduleProvider.currentSemester!.id,
                 forceRefresh: true,
               );
 
-              // Fire-and-forget exam refresh (don't block UI)
               final examProvider = context.read<ExamProvider>();
               if (examProvider.selectedSemesterId != null) {
                 examProvider.selectSemester(
@@ -153,10 +204,9 @@ class _TodayScreenState extends State<TodayScreen> {
           child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
-              // 1. Wow Header (SliverAppBar with Parallax Image)
               SliverAppBar(
                 expandedHeight: 240.0,
-                toolbarHeight: 0.0, // Removes the meaningless 56px gap when collapsed
+                toolbarHeight: 0.0,
                 pinned: false,
                 stretch: true,
                 backgroundColor: Colors.transparent,
@@ -167,14 +217,12 @@ class _TodayScreenState extends State<TodayScreen> {
                   ],
                   background: Image.asset(
                     Theme.of(context).brightness == Brightness.dark
-                        ? 'assets/today_dark.png'
-                        : 'assets/today.png',
+                        ? 'assets/today_dark.webp'
+                        : 'assets/today.webp',
                     fit: BoxFit.cover,
                     alignment: Alignment.topCenter,
                   ),
-                ), // Added missing closing parenthesis for FlexibleSpaceBar
-                // We use a Transform to push the bottom widget down by 1px and make it 25px tall 
-                // so it covers the image bleed and perfectly merges with the next sliver.
+                ),
                 bottom: PreferredSize(
                   preferredSize: const Size.fromHeight(25),
                   child: Transform.translate(
@@ -193,268 +241,295 @@ class _TodayScreenState extends State<TodayScreen> {
                 ),
               ),
 
-              // 2. Greeting Header in the Jumbotron
+              // 2. Greeting + Date Navigation
               SliverToBoxAdapter(
                 child: Container(
                   width: double.infinity,
                   color: context.theme.scaffoldStyle.backgroundColor,
-                  padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
+                  padding: const EdgeInsets.fromLTRB(24, 8, 24, 0),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
                         '${_getGreeting()},\n$userName! 👋',
-                        style: Theme.of(context).textTheme.displayLarge
+                        style: Theme.of(context)
+                            .textTheme
+                            .displayLarge
                             ?.copyWith(
                               color: Theme.of(context).colorScheme.onSurface,
                             ),
                       ),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 12),
                       Text(
-                        todaySchedules.isEmpty
-                            ? 'Hôm nay bạn được nghỉ ngơi thoải mái!'
-                            : 'Hôm nay chiến ${todaySchedules.length} môn nhé.',
-                        style: Theme.of(context).textTheme.bodyLarge
+                        isViewingToday
+                            ? (todaySchedules.isEmpty
+                                ? 'Hôm nay bạn được nghỉ ngơi thoải mái!'
+                                : 'Hôm nay chiến ${todaySchedules.length} môn nhé.')
+                            : 'Xem lịch ngày ${_currentDate.day}/${_currentDate.month}',
+                        style: Theme.of(context)
+                            .textTheme
+                            .bodyLarge
                             ?.copyWith(
-                              color: Theme.of(context).colorScheme.onSurfaceVariant,
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurfaceVariant,
                             ),
+                      ),
+                      const SizedBox(height: 12),
+                      Center(
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            GestureDetector(
+                              onTap: () => _navigateDay(-1),
+                              child: Icon(
+                                FLucideIcons.chevronLeft,
+                                size: 20,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            FCard.raw(
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 14,
+                                  vertical: 8,
+                                ),
+                                child: Text(
+                                  dateFormat,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .labelLarge
+                                      ?.copyWith(
+                                        fontWeight: FontWeight.w600,
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .onSurface,
+                                      ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            GestureDetector(
+                              onTap: () => _navigateDay(1),
+                              child: Icon(
+                                FLucideIcons.chevronRight,
+                                size: 20,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
+                              ),
+                            ),
+                            if (!isViewingToday) ...[
+                              const SizedBox(width: 12),
+                              GestureDetector(
+                                onTap: () {
+                                  setState(() {
+                                    _currentDate = today;
+                                  });
+                                },
+                                child: Text(
+                                  'Hôm nay',
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .labelMedium
+                                      ?.copyWith(
+                                        color: Theme.of(context)
+                                            .colorScheme
+                                            .primary,
+                                        fontWeight: FontWeight.w600,
+                                      ),
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
                       ),
                     ],
                   ),
                 ),
               ),
 
-                // 2. Reconnecting Banner
+              const SliverToBoxAdapter(child: SizedBox(height: 16)),
 
+              // 3. Timeline List or Empty State
+              if (todaySchedules.isEmpty)
+                const SliverToBoxAdapter(
+                  child: Padding(
+                    padding: EdgeInsets.only(top: 8),
+                    child: EmptyStateWidget(
+                      icon: FLucideIcons.coffee,
+                      title: 'Hôm nay trống lịch!',
+                      description:
+                          'Tuyệt vời! Tắt báo thức và ngủ tiếp thôi, hoặc xách cơ ra làm vài đường!',
+                    ),
+                  ),
+                )
+              else
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 8,
+                  ),
+                  sliver: SliverList.builder(
+                    itemCount: todaySchedules.length,
+                    itemBuilder: (context, index) {
+                      final course = todaySchedules[index];
+                      final isLast = index == todaySchedules.length - 1;
+                      final status = _getCourseStatus(
+                        scheduleProvider,
+                        course,
+                      );
 
-                  // Date Chip
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 8,
-                      ),
-                      child: Align(
-                        alignment: Alignment.centerLeft,
-                        child: FCard.raw(
-                          child: Padding(
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: 14,
-                              vertical: 8,
-                            ),
-                            child: Text(
-                              dateFormat,
-                              style: Theme.of(context).textTheme.labelLarge
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.w600,
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.onSurface,
-                                  ),
+                      return AnimationConfiguration.staggeredList(
+                        position: index,
+                        duration: const Duration(milliseconds: 375),
+                        child: SlideAnimation(
+                          verticalOffset: 50.0,
+                          child: FadeInAnimation(
+                            child: TimelineItemOptimized(
+                              course: course,
+                              isLast: isLast,
+                              status: status,
+                              startTime: _getTimeRange(
+                                scheduleProvider,
+                                course,
+                              ).split('\n')[0],
+                              timeRange: _getTimeRange(
+                                scheduleProvider,
+                                course,
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    ),
+                      );
+                    },
                   ),
+                ),
 
-                  const SliverToBoxAdapter(child: SizedBox(height: 16)),
+              const SliverToBoxAdapter(child: SizedBox(height: 16)),
 
-                  // Utilities Section
-                  SliverToBoxAdapter(
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 8,
+              // 4. Utilities Section (moved below schedule)
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 8,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Padding(
+                        padding: const EdgeInsets.only(left: 8, bottom: 8),
+                        child: Text(
+                          'Tiện ích',
+                          style: Theme.of(context)
+                              .textTheme
+                              .labelLarge
+                              ?.copyWith(
+                                fontWeight: FontWeight.w600,
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
+                              ),
+                        ),
                       ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                      FTileGroup(
                         children: [
-                          Padding(
-                            padding: const EdgeInsets.only(left: 8, bottom: 8),
-                            child: Text(
-                              'Tiện ích',
-                              style: Theme.of(context).textTheme.titleSmall
-                                  ?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    color: Theme.of(
-                                      context,
-                                    ).colorScheme.onSurfaceVariant,
-                                  ),
+                          FTile(
+                            prefix: Icon(
+                              FLucideIcons.graduationCap,
+                              color: Theme.of(context).colorScheme.primary,
                             ),
+                            title: const Text('Tra cứu điểm'),
+                            suffix: const Icon(
+                              FLucideIcons.chevronRight,
+                              size: 20,
+                            ),
+                            onPress: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const GradeScreen(),
+                                ),
+                              );
+                            },
                           ),
-                          FTileGroup(
-                            children: [
-                              FTile(
-                                prefix: Icon(
-                                  FLucideIcons.graduationCap,
-                                  color: Theme.of(context).colorScheme.primary,
+                          FTile(
+                            prefix: Icon(
+                              FLucideIcons.pieChart,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                            title: const Text('Phân tích học tập'),
+                            suffix: const Icon(
+                              FLucideIcons.chevronRight,
+                              size: 20,
+                            ),
+                            onPress: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const AnalyticsScreen(),
                                 ),
-                                title: const Text('Tra cứu điểm'),
-                                suffix: const Icon(
-                                  FLucideIcons.chevronRight,
-                                  size: 20,
+                              );
+                            },
+                          ),
+                          FTile(
+                            prefix: Icon(
+                              FLucideIcons.wallet,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                            title: const Text('Kiểm tra học phí'),
+                            suffix: const Icon(
+                              FLucideIcons.chevronRight,
+                              size: 20,
+                            ),
+                            onPress: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const TuitionFeeScreen(),
                                 ),
-                                onPress: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => const GradeScreen(),
-                                    ),
-                                  );
-                                },
-                              ),
-                              FTile(
-                                prefix: Icon(
-                                  FLucideIcons.pieChart,
-                                  color: Theme.of(context).colorScheme.primary,
+                              );
+                            },
+                          ),
+                          FTile(
+                            prefix: Icon(
+                              FLucideIcons.school,
+                              color: Theme.of(context).colorScheme.primary,
+                            ),
+                            title: const Text('Chương trình đào tạo'),
+                            suffix: const Icon(
+                              FLucideIcons.chevronRight,
+                              size: 20,
+                            ),
+                            onPress: () {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) =>
+                                      const EducationProgramScreen(),
                                 ),
-                                title: const Text('Phân tích học tập'),
-                                suffix: const Icon(
-                                  FLucideIcons.chevronRight,
-                                  size: 20,
-                                ),
-                                onPress: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => const AnalyticsScreen(),
-                                    ),
-                                  );
-                                },
-                              ),
-                              FTile(
-                                prefix: Icon(
-                                  FLucideIcons.bookOpen,
-                                  color: Theme.of(context).colorScheme.primary,
-                                ),
-                                title: const Text('Đăng ký học'),
-                                suffix: const Icon(
-                                  FLucideIcons.chevronRight,
-                                  size: 20,
-                                ),
-                                onPress: () {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                        'Tính năng đang phát triển',
-                                      ),
-                                    ),
-                                  );
-                                },
-                              ),
-                              FTile(
-                                prefix: Icon(
-                                  Icons.account_balance_wallet,
-                                  color: Theme.of(context).colorScheme.primary,
-                                ),
-                                title: const Text('Kiểm tra học phí'),
-                                suffix: const Icon(
-                                  FLucideIcons.chevronRight,
-                                  size: 20,
-                                ),
-                                onPress: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => const TuitionFeeScreen(),
-                                    ),
-                                  );
-                                },
-                              ),
-                              FTile(
-                                prefix: Icon(
-                                  Icons.school,
-                                  color: Theme.of(context).colorScheme.primary,
-                                ),
-                                title: const Text('Chương trình đào tạo'),
-                                suffix: const Icon(
-                                  FLucideIcons.chevronRight,
-                                  size: 20,
-                                ),
-                                onPress: () {
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => const EducationProgramScreen(),
-                                    ),
-                                  );
-                                },
-                              ),
-                            ],
+                              );
+                            },
                           ),
                         ],
                       ),
-                    ),
+                    ],
                   ),
-
-                  const SliverToBoxAdapter(child: SizedBox(height: 16)),
-
-                  // Timeline List or Empty State
-                  if (todaySchedules.isEmpty)
-                    const SliverToBoxAdapter(
-                      child: Padding(
-                        padding: EdgeInsets.only(top: 8),
-                        child: EmptyStateWidget(
-                          icon: FLucideIcons.coffee,
-                          title: 'Hôm nay trống lịch!',
-                          description:
-                              'Tuyệt vời! Tắt báo thức và ngủ tiếp thôi, hoặc xách cơ ra làm vài đường!',
-                        ),
-                      ),
-                    )
-                  else
-                    SliverPadding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 24,
-                        vertical: 8,
-                      ),
-                      sliver: SliverList.builder(
-                        itemCount: todaySchedules.length,
-                        itemBuilder: (context, index) {
-                          final course = todaySchedules[index];
-                          final isLast = index == todaySchedules.length - 1;
-                          final status = _getCourseStatus(
-                            scheduleProvider,
-                            course,
-                          );
-
-                          return AnimationConfiguration.staggeredList(
-                            position: index,
-                            duration: const Duration(milliseconds: 375),
-                            child: SlideAnimation(
-                              verticalOffset: 50.0,
-                              child: FadeInAnimation(
-                                child: TimelineItemOptimized(
-                                  course: course,
-                                  isLast: isLast,
-                                  status: status,
-                                  startTime: _getTimeRange(
-                                    scheduleProvider,
-                                    course,
-                                  ).split('\n')[0],
-                                  timeRange: _getTimeRange(
-                                    scheduleProvider,
-                                    course,
-                                  ),
-                                ),
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-
-                  // Add bottom safe area padding (automatically accounts for the Liquid Glass tab bar)
-                  // plus a small clearance to prevent the last item from touching the tab bar.
-                  const SliverSafeArea(
-                    top: false,
-                    bottom: true,
-                    sliver: SliverToBoxAdapter(child: SizedBox(height: 16)),
-                  ),
-                ],
+                ),
               ),
-            );
+
+              const SliverSafeArea(
+                top: false,
+                bottom: true,
+                sliver: SliverToBoxAdapter(child: SizedBox(height: 16)),
+              ),
+            ],
+          ),
+        );
       },
     );
   }
@@ -475,7 +550,6 @@ class _TodayScreenState extends State<TodayScreen> {
     if (startHour == null || endHour == null) return CourseStatus.future;
 
     final now = VnTime.now();
-    // Parse "HH:mm"
     final startParts = startHour.startString.split(':');
     final endParts = endHour.endString.split(':');
 

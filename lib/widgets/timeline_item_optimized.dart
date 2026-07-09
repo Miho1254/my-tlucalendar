@@ -99,9 +99,11 @@ class TimelineItemOptimized extends StatelessWidget {
                 isPulsing: isCurrent,
                 child: FCard.raw(
                   child: Container(
+                    clipBehavior: Clip.antiAlias,
                     decoration: BoxDecoration(
                       color: cardColor,
-                      border: isCurrent 
+                      borderRadius: BorderRadius.circular(16),
+                      border: isCurrent
                           ? Border.all(color: colorScheme.primary.withValues(alpha: 0.3), width: 1.5)
                           : null,
                     ),
@@ -147,54 +149,37 @@ class TimelineItemOptimized extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 12),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            // Room Badge (Pastel Badge)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-              decoration: BoxDecoration(
-                color: status == CourseStatus.current 
-                    ? colorScheme.primary 
-                    : colorScheme.primaryContainer.withValues(alpha: 0.5),
-                borderRadius: BorderRadius.circular(8),
+        // Room Badge
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: status == CourseStatus.current
+                ? colorScheme.primary
+                : colorScheme.primaryContainer.withValues(alpha: 0.5),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.room,
+                size: 14,
+                color: status == CourseStatus.current
+                    ? colorScheme.onPrimary
+                    : colorScheme.primary,
               ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(
-                    Icons.room,
-                    size: 14,
-                    color: status == CourseStatus.current 
-                        ? colorScheme.onPrimary 
-                        : colorScheme.primary,
-                  ),
-                  const SizedBox(width: 4),
-                  Text(
-                    course.room.isNotEmpty ? course.room : 'Chưa có phòng',
-                    style: theme.textTheme.labelMedium?.copyWith(
-                      color: status == CourseStatus.current 
-                          ? colorScheme.onPrimary 
-                          : colorScheme.primary,
-                      fontWeight: FontWeight.w700,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 12),
-            // Muted Text for Course Code / Instructor
-            Expanded(
-              child: Text(
-                'Mã: ${course.courseCode}',
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: colorScheme.onSurfaceVariant.withValues(alpha: 0.8),
-                  fontWeight: FontWeight.w500,
+              const SizedBox(width: 4),
+              Text(
+                course.room.isNotEmpty ? course.room : 'Chưa có phòng',
+                style: theme.textTheme.labelMedium?.copyWith(
+                  color: status == CourseStatus.current
+                      ? colorScheme.onPrimary
+                      : colorScheme.primary,
+                  fontWeight: FontWeight.w700,
                 ),
-                overflow: TextOverflow.ellipsis,
               ),
-            ),
-          ],
+            ],
+          ),
         ),
         if (note != null) ...[
           const SizedBox(height: 12),

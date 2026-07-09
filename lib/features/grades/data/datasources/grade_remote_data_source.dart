@@ -33,8 +33,6 @@ class GradeRemoteDataSourceImpl implements GradeRemoteDataSource {
           ? response.data
           : response.toString();
 
-      // debugPrint("GRADES JSON: $jsonStr");
-
       return NativeParser.parseStudentMarks(jsonStr);
     } on DioException catch (e) {
       throw ServerFailure(e.message ?? 'Unknown Dio Error');

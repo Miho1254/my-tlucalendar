@@ -1405,6 +1405,32 @@ class NativeParser {
   static List<StudentMarkModel> parseStudentMarks(String jsonStr) {
     if (jsonStr.isEmpty) return [];
     try {
+      // If root is an object, try to extract the array from common wrapper keys
+      final trimmed = jsonStr.trimLeft();
+      if (trimmed.startsWith('{')) {
+        try {
+          final decoded = jsonDecode(jsonStr);
+          if (decoded is Map) {
+            // Try common wrapper keys
+            for (final key in ['data', 'items', 'result', 'marks', 'studentMarks']) {
+              if (decoded[key] is List) {
+                jsonStr = jsonEncode(decoded[key]);
+                break;
+              }
+            }
+          }
+        } catch (_) {}
+      }
+
+      // Safety: ensure root is an array before calling native parser
+      final afterTrim = jsonStr.trimLeft();
+      if (!afterTrim.startsWith('[')) {
+        debugPrint(
+          "Native Parse Error (Grades): Expected array root, got: ${jsonStr.substring(0, jsonStr.length.clamp(0, 200))}",
+        );
+        return [];
+      }
+
       final func = _library
           .lookupFunction<ParseStudentMarksFunc, ParseStudentMarks>(
             'parse_student_marks',
