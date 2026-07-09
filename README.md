@@ -30,36 +30,15 @@
 
 <div align="center">
 
-<table>
-  <tr>
-    <td align="center"><b>☀️ Light Mode</b></td>
-    <td align="center"><b>🌙 Dark Mode</b></td>
-  </tr>
-  <tr>
-    <td><img src="assets/today.png" alt="Light Mode" width="480" /></td>
-    <td><img src="assets/today_dark.png" alt="Dark Mode" width="480" /></td>
-  </tr>
-</table>
+<img src="assets/today.png" alt="Light Mode" width="800">
 
-<br />
+<br>
 
-<table>
-  <tr>
-    <td align="center"><img src="assets/hello.png" alt="Trang chủ" width="240" /><br /><b>Trang chủ</b></td>
-    <td align="center"><img src="assets/lich_hoc.png" alt="Lịch học" width="240" /><br /><b>Lịch học</b></td>
-    <td align="center"><img src="assets/tra_cuu_diem.png" alt="Tra cứu điểm" width="240" /><br /><b>Tra cứu điểm</b></td>
-  </tr>
-  <tr>
-    <td align="center"><img src="assets/phantichhoctap.png" alt="Phân tích học tập" width="240" /><br /><b>Phân tích học tập</b></td>
-    <td align="center"><img src="assets/co_van_hoc_tap.png" alt="Bản đồ kỹ năng" width="240" /><br /><b>Bản đồ kỹ năng</b></td>
-    <td align="center"><img src="assets/hoc_phi.png" alt="Học phí" width="240" /><br /><b>Học phí</b></td>
-  </tr>
-  <tr>
-    <td align="center"><img src="assets/chuong_trinh_daotao.png" alt="Chương trình đào tạo" width="240" /><br /><b>Chương trình đào tạo</b></td>
-    <td></td>
-    <td></td>
-  </tr>
-</table>
+| | | |
+|:---:|:---:|:---:|
+| <img src="assets/hello.png" width="240"><br>**Trang chủ** | <img src="assets/lich_hoc.png" width="240"><br>**Lịch học** | <img src="assets/tra_cuu_diem.png" width="240"><br>**Tra cứu điểm** |
+| <img src="assets/phantichhoctap.png" width="240"><br>**Phân tích học tập** | <img src="assets/co_van_hoc_tap.png" width="240"><br>**Bản đồ kỹ năng** | <img src="assets/hoc_phi.png" width="240"><br>**Học phí** |
+| <img src="assets/chuong_trinh_daotao.png" width="240"><br>**Chương trình đào tạo** | | |
 
 </div>
 
