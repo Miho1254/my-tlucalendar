@@ -28,17 +28,22 @@
 
 ## Preview
 
-<p align="center">
-  <img src="assets/hello.webp" width="24%" />
-  <img src="assets/lich_hoc.webp" width="24%" />
-  <img src="assets/tra_cuu_diem.webp" width="24%" />
-  <img src="assets/phantichhoctap.webp" width="24%" />
-</p>
-<p align="center">
-  <img src="assets/co_van_hoc_tap.webp" width="24%" />
-  <img src="assets/hoc_phi.webp" width="24%" />
-  <img src="assets/chuong_trinh_daotao.webp" width="24%" />
-</p>
+<div align="center">
+<table>
+  <tr>
+    <td align="center" width="25%"><img src="assets/hello.webp" width="100%"><br><b>Trang chủ</b></td>
+    <td align="center" width="25%"><img src="assets/lich_hoc.webp" width="100%"><br><b>Lịch học</b></td>
+    <td align="center" width="25%"><img src="assets/tra_cuu_diem.webp" width="100%"><br><b>Tra cứu điểm</b></td>
+    <td align="center" width="25%"><img src="assets/phantichhoctap.webp" width="100%"><br><b>Phân tích học tập</b></td>
+  </tr>
+  <tr>
+    <td align="center" width="25%"><img src="assets/co_van_hoc_tap.webp" width="100%"><br><b>Bản đồ kỹ năng</b></td>
+    <td align="center" width="25%"><img src="assets/hoc_phi.webp" width="100%"><br><b>Học phí</b></td>
+    <td align="center" width="25%"><img src="assets/chuong_trinh_daotao.webp" width="100%"><br><b>Chương trình đào tạo</b></td>
+    <td width="25%"></td>
+  </tr>
+</table>
+</div>
 
 ---
 
