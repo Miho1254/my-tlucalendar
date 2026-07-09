@@ -30,10 +30,6 @@
 
 <div align="center">
 
-<img src="assets/today.png" alt="Light Mode" width="800">
-
-<br>
-
 | | | |
 |:---:|:---:|:---:|
 | <img src="assets/hello.png" width="240"><br>**Trang chủ** | <img src="assets/lich_hoc.png" width="240"><br>**Lịch học** | <img src="assets/tra_cuu_diem.png" width="240"><br>**Tra cứu điểm** |
