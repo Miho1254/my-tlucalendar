@@ -31,35 +31,18 @@
 <div align="center">
 
 <table>
-  <!-- Dòng 1: Ảnh -->
   <tr>
-    <td colspan="2" align="center" width="25%"><img src="assets/hello.webp" width="100%"></td>
-    <td colspan="2" align="center" width="25%"><img src="assets/lich_hoc.webp" width="100%"></td>
-    <td colspan="2" align="center" width="25%"><img src="assets/tra_cuu_diem.webp" width="100%"></td>
-    <td colspan="2" align="center" width="25%"><img src="assets/phantichhoctap.webp" width="100%"></td>
+    <td colspan="2" align="center" width="200"><img src="assets/hello.webp" width="200"><br><b>Trang chủ</b></td>
+    <td colspan="2" align="center" width="200"><img src="assets/lich_hoc.webp" width="200"><br><b>Lịch học</b></td>
+    <td colspan="2" align="center" width="200"><img src="assets/tra_cuu_diem.webp" width="200"><br><b>Tra cứu điểm</b></td>
+    <td colspan="2" align="center" width="200"><img src="assets/phantichhoctap.webp" width="200"><br><b>Phân tích học tập</b></td>
   </tr>
-  <!-- Dòng 1: Chữ -->
   <tr>
-    <td colspan="2" align="center" valign="top"><b>Trang chủ</b></td>
-    <td colspan="2" align="center" valign="top"><b>Lịch học</b></td>
-    <td colspan="2" align="center" valign="top"><b>Tra cứu<br>điểm</b></td>
-    <td colspan="2" align="center" valign="top"><b>Phân tích<br>học tập</b></td>
-  </tr>
-  <!-- Dòng 2: Ảnh -->
-  <tr>
-    <td colspan="1" width="12.5%"></td>
-    <td colspan="2" align="center" width="25%"><img src="assets/co_van_hoc_tap.webp" width="100%"></td>
-    <td colspan="2" align="center" width="25%"><img src="assets/hoc_phi.webp" width="100%"></td>
-    <td colspan="2" align="center" width="25%"><img src="assets/chuong_trinh_daotao.webp" width="100%"></td>
-    <td colspan="1" width="12.5%"></td>
-  </tr>
-  <!-- Dòng 2: Chữ -->
-  <tr>
-    <td colspan="1"></td>
-    <td colspan="2" align="center" valign="top"><b>Bản đồ<br>kỹ năng</b></td>
-    <td colspan="2" align="center" valign="top"><b>Học phí</b></td>
-    <td colspan="2" align="center" valign="top"><b>Chương trình<br>đào tạo</b></td>
-    <td colspan="1"></td>
+    <td colspan="1" width="100"></td>
+    <td colspan="2" align="center" width="200"><img src="assets/co_van_hoc_tap.webp" width="200"><br><b>Bản đồ kỹ năng</b></td>
+    <td colspan="2" align="center" width="200"><img src="assets/hoc_phi.webp" width="200"><br><b>Học phí</b></td>
+    <td colspan="2" align="center" width="200"><img src="assets/chuong_trinh_daotao.webp" width="200"><br><b>Chương trình đào tạo</b></td>
+    <td colspan="1" width="100"></td>
   </tr>
 </table>
 
