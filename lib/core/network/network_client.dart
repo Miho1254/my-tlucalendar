@@ -50,18 +50,16 @@ class NetworkClient {
       ),
     );
 
-    // Aggressive Retry Strategy for High Load
+    // Retry Strategy — conservative to avoid hammering upstream
     _dio.interceptors.add(
       RetryInterceptor(
         dio: _dio,
         logPrint: (message) => debugPrint('[Retry] $message'),
-        retries: 5,
+        retries: 3,
         retryDelays: const [
-          Duration(seconds: 1),
-          Duration(seconds: 3),
+          Duration(seconds: 2),
           Duration(seconds: 5),
           Duration(seconds: 10),
-          Duration(seconds: 20),
         ],
         retryableExtraStatuses: {
           // Standard HTTP Codes
