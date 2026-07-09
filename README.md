@@ -30,11 +30,22 @@
 
 <div align="center">
 
-| | | |
-|:---:|:---:|:---:|
-| <img src="assets/hello.webp" width="240"><br>**Trang chủ** | <img src="assets/lich_hoc.webp" width="240"><br>**Lịch học** | <img src="assets/tra_cuu_diem.webp" width="240"><br>**Tra cứu điểm** |
-| <img src="assets/phantichhoctap.webp" width="240"><br>**Phân tích học tập** | <img src="assets/co_van_hoc_tap.webp" width="240"><br>**Bản đồ kỹ năng** | <img src="assets/hoc_phi.webp" width="240"><br>**Học phí** |
-| <img src="assets/chuong_trinh_daotao.webp" width="240"><br>**Chương trình đào tạo** | | |
+<table>
+  <tr>
+    <td align="center"><img src="assets/hello.webp" width="200"><br><b>Trang chủ</b></td>
+    <td align="center"><img src="assets/lich_hoc.webp" width="200"><br><b>Lịch học</b></td>
+    <td align="center"><img src="assets/tra_cuu_diem.webp" width="200"><br><b>Tra cứu điểm</b></td>
+    <td align="center"><img src="assets/phantichhoctap.webp" width="200"><br><b>Phân tích học tập</b></td>
+  </tr>
+</table>
+
+<table>
+  <tr>
+    <td align="center"><img src="assets/co_van_hoc_tap.webp" width="200"><br><b>Bản đồ kỹ năng</b></td>
+    <td align="center"><img src="assets/hoc_phi.webp" width="200"><br><b>Học phí</b></td>
+    <td align="center"><img src="assets/chuong_trinh_daotao.webp" width="200"><br><b>Chương trình đào tạo</b></td>
+  </tr>
+</table>
 
 </div>
 
