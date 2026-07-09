@@ -345,13 +345,13 @@ class _AnalyticsScreenState extends State<AnalyticsScreen> {
     return FCard(
       title: const Text('Phong độ học tập (Hệ 4)'),
       child: Padding(
-        padding: const EdgeInsets.only(top: 24.0, right: 16.0),
+        padding: const EdgeInsets.only(top: 36.0, right: 16.0),
         child: LayoutBuilder(
           builder: (context, constraints) {
             return SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: SizedBox(
-                height: 200,
+                height: 220,
                 width: analytics.trend.length > 5 ? analytics.trend.length * 50.0 : constraints.maxWidth,
                 child: LineChart(
             LineChartData(

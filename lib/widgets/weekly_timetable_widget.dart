@@ -193,7 +193,7 @@ class WeeklyTimetableWidget extends StatelessWidget {
     }
 
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0),
+      padding: const EdgeInsets.only(left: 0, right: 8.0),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -225,9 +225,9 @@ class WeeklyTimetableWidget extends StatelessWidget {
                       ),
                     ),
                   ),
-                  padding: const EdgeInsets.symmetric(vertical: 4.0, horizontal: 4.0),
+                  padding: const EdgeInsets.symmetric(vertical: 0, horizontal: 4.0),
                   child: Column(
-                    mainAxisAlignment: MainAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.center,
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
                       Text(

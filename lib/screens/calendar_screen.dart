@@ -119,7 +119,10 @@ class _CalendarScreenState extends State<CalendarScreen> {
   @override
   Widget build(BuildContext context) {
     return FScaffold(
+      childPad: false,
       child: SafeArea(
+        left: false,
+        right: false,
         child: RefreshIndicator(
           onRefresh: () async {
             final provider = context.read<ScheduleProvider>();

@@ -108,6 +108,21 @@ async function handleLogin(req, res) {
   });
 
   const data = await response.json();
+
+  if (data.error_description === 'User is disabled') {
+    return res.status(400).json({
+      error: 'user_disabled',
+      error_description: 'Tài khoản của bạn đã bị vô hiệu hoá, vui lòng liên hệ phòng Công tác sinh viên tại cơ sở để biết thêm thông tin'
+    });
+  }
+
+  if (data.error_description === 'Bad credentials') {
+    return res.status(400).json({
+      error: 'bad_credentials',
+      error_description: 'Tài khoản hoặc mật khẩu bạn không đúng'
+    });
+  }
+
   res.status(response.status).json(data);
 }
 
