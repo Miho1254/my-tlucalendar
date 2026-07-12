@@ -10,12 +10,12 @@ import 'package:tlucalendar/widgets/schedule_skeleton.dart';
 import 'package:tlucalendar/widgets/timeline_item_optimized.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:forui/forui.dart';
-import 'package:forui_assets/forui_assets.dart';
 import 'package:tlucalendar/features/grades/presentation/pages/grade_screen.dart';
 import 'package:tlucalendar/features/grades/presentation/pages/analytics_screen.dart';
 import 'package:tlucalendar/screens/tuition_fee_screen.dart';
 import 'package:tlucalendar/screens/education_program_screen.dart';
 import 'package:tlucalendar/utils/vn_time.dart';
+import 'package:tlucalendar/utils/error_messages.dart';
 
 class TodayScreen extends StatefulWidget {
   const TodayScreen({super.key});
@@ -557,7 +557,7 @@ class _TodayScreenState extends State<TodayScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    scheduleProvider.errorMessage!,
+                    ErrorMessages.friendly(scheduleProvider.errorMessage),
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
@@ -664,7 +664,7 @@ class _TodayScreenState extends State<TodayScreen> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        '${_getGreeting()},\n$userName! 👋',
+                        '${_getGreeting()},\n$userName!',
                         style: Theme.of(context)
                             .textTheme
                             .displayLarge
@@ -874,6 +874,7 @@ class _TodayScreenState extends State<TodayScreen> {
                               ),
                         ),
                       ),
+                      // Grades group
                       FTileGroup(
                         children: [
                           FTile(
@@ -914,6 +915,12 @@ class _TodayScreenState extends State<TodayScreen> {
                               );
                             },
                           ),
+                        ],
+                      ),
+                      const SizedBox(height: 12),
+                      // Finance group
+                      FTileGroup(
+                        children: [
                           FTile(
                             prefix: Icon(
                               FLucideIcons.wallet,

@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:forui/forui.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 class AppTheme {
   // ════════════════════════════════════════════════════════
@@ -181,7 +180,7 @@ class AppTheme {
           return const IconThemeData(color: _zinc400, size: 24);
         }),
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
-          const base = TextStyle(fontFamily: 'Inter', fontSize: 11, fontWeight: FontWeight.w500);
+          const base = TextStyle(fontFamily: 'BeVietnamPro', fontSize: 11, fontWeight: FontWeight.w500);
           if (states.contains(WidgetState.selected)) {
             return base.copyWith(color: _indigo500);
           }
@@ -275,29 +274,27 @@ class AppTheme {
   }
 
   // ════════════════════════════════════════════════════════
-  // HELPER: Inter typography — Apple HIG sizing
+  // HELPER: Be Vietnam Pro typography (bundled locally)
   // ════════════════════════════════════════════════════════
+  static const _font = 'BeVietnamPro';
+
   static TextTheme _buildTextTheme(TextTheme base, Color body, Color caption) {
-    return GoogleFonts.interTextTheme(base).copyWith(
-      // "Wow" Premium Typography
-      displayLarge: GoogleFonts.inter(fontSize: 32, fontWeight: FontWeight.w800, color: body, letterSpacing: -1.0, height: 1.2),
-      displayMedium: GoogleFonts.inter(fontSize: 28, fontWeight: FontWeight.w800, color: body, letterSpacing: -0.8, height: 1.2),
-      displaySmall: GoogleFonts.inter(fontSize: 24, fontWeight: FontWeight.w700, color: body, letterSpacing: -0.5, height: 1.2),
-      headlineLarge: GoogleFonts.inter(fontSize: 24, fontWeight: FontWeight.w700, color: body, letterSpacing: -0.5, height: 1.2),
-      headlineMedium: GoogleFonts.inter(fontSize: 20, fontWeight: FontWeight.w600, color: body, letterSpacing: -0.3, height: 1.3),
-      headlineSmall: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w600, color: body, letterSpacing: -0.2, height: 1.3),
-      // Inline Titles
-      titleLarge: GoogleFonts.inter(fontSize: 17, fontWeight: FontWeight.w600, color: body, letterSpacing: -0.2, height: 1.3),
-      titleMedium: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w500, color: body, letterSpacing: -0.1, height: 1.4),
-      titleSmall: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w500, color: body, height: 1.4),
-      // Body (Clean & readable)
-      bodyLarge: GoogleFonts.inter(fontSize: 17, fontWeight: FontWeight.w400, color: body, height: 1.5),
-      bodyMedium: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w400, color: body, height: 1.5),
-      bodySmall: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w400, color: caption, height: 1.5),
-      // Labels / UI Elements
-      labelLarge: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w500, color: body, height: 1.4),
-      labelMedium: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w500, color: caption, height: 1.4),
-      labelSmall: GoogleFonts.inter(fontSize: 11, fontWeight: FontWeight.w400, color: caption, letterSpacing: 0, height: 1.4),
+    return base.copyWith(
+      displayLarge: TextStyle(fontFamily: _font, fontSize: 32, fontWeight: FontWeight.w700, color: body, letterSpacing: -1.0, height: 1.2),
+      displayMedium: TextStyle(fontFamily: _font, fontSize: 28, fontWeight: FontWeight.w700, color: body, letterSpacing: -0.7, height: 1.2),
+      displaySmall: TextStyle(fontFamily: _font, fontSize: 24, fontWeight: FontWeight.w700, color: body, letterSpacing: -0.5, height: 1.2),
+      headlineLarge: TextStyle(fontFamily: _font, fontSize: 24, fontWeight: FontWeight.w700, color: body, letterSpacing: -0.5, height: 1.2),
+      headlineMedium: TextStyle(fontFamily: _font, fontSize: 20, fontWeight: FontWeight.w600, color: body, letterSpacing: -0.3, height: 1.3),
+      headlineSmall: TextStyle(fontFamily: _font, fontSize: 18, fontWeight: FontWeight.w600, color: body, letterSpacing: -0.2, height: 1.3),
+      titleLarge: TextStyle(fontFamily: _font, fontSize: 17, fontWeight: FontWeight.w600, color: body, letterSpacing: -0.1, height: 1.3),
+      titleMedium: TextStyle(fontFamily: _font, fontSize: 15, fontWeight: FontWeight.w500, color: body, height: 1.4),
+      titleSmall: TextStyle(fontFamily: _font, fontSize: 13, fontWeight: FontWeight.w500, color: body, height: 1.4),
+      bodyLarge: TextStyle(fontFamily: _font, fontSize: 17, fontWeight: FontWeight.w400, color: body, height: 1.55),
+      bodyMedium: TextStyle(fontFamily: _font, fontSize: 15, fontWeight: FontWeight.w400, color: body, height: 1.55),
+      bodySmall: TextStyle(fontFamily: _font, fontSize: 13, fontWeight: FontWeight.w400, color: caption, height: 1.5),
+      labelLarge: TextStyle(fontFamily: _font, fontSize: 15, fontWeight: FontWeight.w500, color: body, height: 1.4),
+      labelMedium: TextStyle(fontFamily: _font, fontSize: 13, fontWeight: FontWeight.w500, color: caption, height: 1.4),
+      labelSmall: TextStyle(fontFamily: _font, fontSize: 11, fontWeight: FontWeight.w400, color: caption, height: 1.4),
     );
   }
 }

@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:tlucalendar/providers/grade_provider.dart';
 import 'package:forui/forui.dart';
-import 'package:forui_assets/forui_assets.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:tlucalendar/providers/auth_provider.dart';
 import 'package:tlucalendar/utils/semester_parser.dart';

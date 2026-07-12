@@ -7,6 +7,7 @@ import 'package:tlucalendar/providers/auth_provider.dart';
 import 'package:tlucalendar/providers/tuition_provider.dart';
 import 'package:tlucalendar/features/tuition/domain/entities/tuition_fee.dart';
 import 'package:tlucalendar/utils/semester_parser.dart';
+import 'package:tlucalendar/utils/error_messages.dart';
 
 class TuitionFeeScreen extends StatefulWidget {
   const TuitionFeeScreen({super.key});
@@ -74,7 +75,7 @@ class _TuitionFeeScreenState extends State<TuitionFeeScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      provider.errorMessage!,
+                      ErrorMessages.friendly(provider.errorMessage),
                       textAlign: TextAlign.center,
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                         color: Theme.of(context).colorScheme.onSurfaceVariant,

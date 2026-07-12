@@ -6,7 +6,6 @@ import 'package:tlucalendar/features/schedule/domain/entities/semester_register_
 import 'package:tlucalendar/providers/schedule_provider.dart';
 import 'dart:convert'; // For jsonEncode
 import 'package:forui/forui.dart';
-import 'package:forui_assets/forui_assets.dart';
 
 class CourseRegistrationScreen extends StatefulWidget {
   final SemesterRegisterPeriod period;

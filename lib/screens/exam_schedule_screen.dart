@@ -12,6 +12,7 @@ import 'package:tlucalendar/widgets/note_bottom_sheet.dart';
 import 'package:flutter_staggered_animations/flutter_staggered_animations.dart';
 import 'package:tlucalendar/utils/semester_parser.dart';
 import 'package:tlucalendar/utils/vn_time.dart';
+import 'package:tlucalendar/utils/error_messages.dart';
 
 class ExamScheduleScreen extends StatefulWidget {
   const ExamScheduleScreen({super.key});
@@ -150,12 +151,28 @@ class _ExamScheduleScreenState extends State<ExamScheduleScreen> {
 
   Widget _buildError(String message, VoidCallback onRetry) {
     return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(message),
-          ElevatedButton(onPressed: onRetry, child: const Text("Thử lại")),
-        ],
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.cloud_off_rounded,
+              size: 48,
+              color: Theme.of(context).colorScheme.error,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              ErrorMessages.friendly(message),
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
+            ),
+            const SizedBox(height: 20),
+            FButton(onPress: onRetry, child: const Text("Thử lại")),
+          ],
+        ),
       ),
     );
   }
@@ -273,7 +290,7 @@ class _ExamScheduleScreenState extends State<ExamScheduleScreen> {
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        examProvider.errorMessage!,
+                        ErrorMessages.friendly(examProvider.errorMessage),
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: Theme.of(context).colorScheme.onErrorContainer,
                           fontWeight: FontWeight.w500,
@@ -326,7 +343,7 @@ class _ExamScheduleScreenState extends State<ExamScheduleScreen> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    examProvider.roomErrorMessage!,
+                    ErrorMessages.friendly(examProvider.roomErrorMessage),
                     style: Theme.of(context).textTheme.bodyMedium,
                     textAlign: TextAlign.center,
                   ),

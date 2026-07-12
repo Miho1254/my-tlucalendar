@@ -14,6 +14,7 @@ import 'package:tlucalendar/widgets/course_detail_sheet.dart';
 import 'package:tlucalendar/utils/semester_parser.dart';
 import 'package:tlucalendar/widgets/weekly_timetable_widget.dart';
 import 'package:tlucalendar/utils/vn_time.dart';
+import 'package:tlucalendar/utils/error_messages.dart';
 
 bool _isSameDay(DateTime? a, DateTime? b) {
   if (a == null || b == null) return false;
@@ -192,8 +193,8 @@ class _CalendarScreenState extends State<CalendarScreen> {
                 children: [
                   Text(
                     isDone
-                        ? "🎉 Đã sống sót qua tuần này!"
-                        : "Tiến độ sống sót tuần này",
+                        ? "Da song soc qua tuan nay!"
+                        : "Tien do song soc tuan nay",
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       fontWeight: FontWeight.bold,
                       color: isDone
@@ -790,7 +791,7 @@ class _CalendarScreenState extends State<CalendarScreen> {
               ),
               const SizedBox(height: 8),
               Text(
-                provider.errorMessage ?? 'Không thể tải lịch học',
+                ErrorMessages.friendly(provider.errorMessage),
                 textAlign: TextAlign.center,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,

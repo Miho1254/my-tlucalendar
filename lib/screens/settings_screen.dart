@@ -18,6 +18,7 @@ import 'package:tlucalendar/services/backup_service.dart';
 import 'package:tlucalendar/services/update_service.dart';
 import 'package:tlucalendar/screens/app_initializer.dart';
 import 'package:tlucalendar/utils/semester_parser.dart';
+import 'package:tlucalendar/utils/error_messages.dart';
 
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:package_info_plus/package_info_plus.dart';
@@ -105,7 +106,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (!silent) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Không thể kiểm tra cập nhật: $_updateCheckError'),
+            content: Text(ErrorMessages.friendly(_updateCheckError)),
           ),
         );
       }

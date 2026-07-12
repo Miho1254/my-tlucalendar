@@ -5,6 +5,7 @@ import 'package:tlucalendar/providers/auth_provider.dart';
 import 'package:tlucalendar/providers/education_program_provider.dart';
 import 'package:tlucalendar/providers/grade_provider.dart';
 import 'package:tlucalendar/features/education_program/domain/entities/education_program.dart';
+import 'package:tlucalendar/utils/error_messages.dart';
 
 class EducationProgramScreen extends StatefulWidget {
   const EducationProgramScreen({super.key});
@@ -95,7 +96,7 @@ class _EducationProgramScreenState extends State<EducationProgramScreen>
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    provider.errorMessage!,
+                    ErrorMessages.friendly(provider.errorMessage),
                     textAlign: TextAlign.center,
                     style: theme.typography.body.md.copyWith(color: colors.mutedForeground),
                   ),

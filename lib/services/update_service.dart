@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 import 'package:package_info_plus/package_info_plus.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class UpdateCheckResult {
   final String currentVersion;
@@ -24,6 +25,38 @@ class UpdateCheckResult {
 class UpdateService {
   static const _latestReleaseApi =
       'https://api.github.com/repos/Miho1254/my-tlucalendar/releases/latest';
+  static const _prefLastCheckDate = 'update_last_check_date';
+  static const _prefDismissedVersion = 'update_dismissed_version';
+
+  /// Check once per day. Returns null if skipped (checked <24h ago).
+  static Future<UpdateCheckResult?> checkDaily() async {
+    final prefs = await SharedPreferences.getInstance();
+    final lastCheckRaw = prefs.getString(_prefLastCheckDate);
+
+    if (lastCheckRaw != null) {
+      final lastCheck = DateTime.tryParse(lastCheckRaw);
+      if (lastCheck != null) {
+        final hoursSince = DateTime.now().difference(lastCheck).inHours;
+        if (hoursSince < 24) return null;
+      }
+    }
+
+    final result = await checkLatestRelease();
+    await prefs.setString(_prefLastCheckDate, DateTime.now().toIso8601String());
+    return result;
+  }
+
+  /// Has the user dismissed this specific version?
+  static Future<bool> isDismissed(String version) async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_prefDismissedVersion) == version;
+  }
+
+  /// Mark a version as dismissed.
+  static Future<void> dismiss(String version) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_prefDismissedVersion, version);
+  }
 
   static Future<UpdateCheckResult> checkLatestRelease() async {
     final packageInfo = await PackageInfo.fromPlatform();

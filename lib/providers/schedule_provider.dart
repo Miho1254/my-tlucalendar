@@ -12,6 +12,7 @@ import 'package:tlucalendar/features/schedule/domain/usecases/get_current_semest
 import 'package:tlucalendar/features/schedule/domain/usecases/get_schedule_usecase.dart';
 import 'package:tlucalendar/features/schedule/domain/usecases/get_school_years_usecase.dart';
 import 'package:tlucalendar/services/notification_service.dart';
+import 'package:tlucalendar/widgets/update_banner.dart';
 
 import 'package:tlucalendar/services/auto_refresh_service.dart';
 import 'package:tlucalendar/providers/auth_provider.dart';
@@ -49,6 +50,9 @@ class ScheduleProvider extends ChangeNotifier {
   bool _isLoading = false;
   String? _errorMessage;
 
+  /// Pending toast events — consumers drain via [consumeToastEvent].
+  final List<DataToastState> _pendingToasts = [];
+
   // Getters
   List<SchoolYear> get schoolYears => _schoolYears;
   List<Course> get courses => _courses;
@@ -61,6 +65,16 @@ class ScheduleProvider extends ChangeNotifier {
   bool get isOfflineMode => _isOfflineMode;
   bool get isReconnecting => _isReconnecting;
   bool get isRefreshing => _isRefreshing;
+
+  /// Drain the next pending toast event, or null if none.
+  DataToastState? consumeToastEvent() {
+    if (_pendingToasts.isEmpty) return null;
+    return _pendingToasts.removeAt(0);
+  }
+
+  void _enqueueToast(DataToastState state) {
+    _pendingToasts.add(state);
+  }
 
   // Clear data on logout
   void clearData() {
@@ -169,13 +183,16 @@ class ScheduleProvider extends ChangeNotifier {
         (failure) async {
           if (failure is CachedDataFailure<List<SchoolYear>>) {
             _isOfflineMode = true;
+            _enqueueToast(DataToastState.offline);
             _processSchoolYears(failure.data);
           } else {
             _errorMessage = failure.message;
+            _enqueueToast(DataToastState.error);
           }
         },
         (years) async {
           _isOfflineMode = false;
+          _enqueueToast(DataToastState.success);
           _processSchoolYears(years);
         },
       );
@@ -349,16 +366,21 @@ class ScheduleProvider extends ChangeNotifier {
         if (f is CachedDataFailure<List<Course>>) {
           _isOfflineMode = true;
           _courses = f.data;
+          _enqueueToast(DataToastState.offline);
           _scheduleNotifications();
         } else {
           if (shouldShowSpinner) {
             _errorMessage = f.message;
+            _enqueueToast(DataToastState.error);
           }
         }
       },
       (c) {
         _isOfflineMode = false;
         _courses = c;
+        if (forceRefresh) {
+          _enqueueToast(DataToastState.success);
+        }
         _scheduleNotifications();
       },
     );

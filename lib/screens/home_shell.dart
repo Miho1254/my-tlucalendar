@@ -6,6 +6,8 @@ import 'package:provider/provider.dart';
 
 import 'package:tlucalendar/providers/schedule_provider.dart';
 import 'package:tlucalendar/utils/vn_time.dart';
+import 'package:tlucalendar/widgets/update_banner.dart';
+import 'package:tlucalendar/widgets/update_available_banner.dart';
 
 import 'package:tlucalendar/screens/today_screen.dart';
 import 'package:tlucalendar/screens/calendar_screen.dart';
@@ -46,6 +48,11 @@ class _HomeShellState extends State<HomeShell> {
       statusBarIconBrightness: Brightness.light,
       systemNavigationBarColor: Colors.transparent,
     ));
+
+    // Daily update toast — fires once per session
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) UpdateAvailableBanner.checkAndShow(context);
+    });
   }
 
   void _onTabTap(int index) {
@@ -56,9 +63,21 @@ class _HomeShellState extends State<HomeShell> {
   @override
   Widget build(BuildContext context) {
     final bottomPadding = MediaQuery.paddingOf(context).bottom;
-    
+
     // Get schedule provider to determine today's courses
     final scheduleProvider = context.watch<ScheduleProvider>();
+
+    // Drain pending toast events from the provider
+    for (;;) {
+      final ev = scheduleProvider.consumeToastEvent();
+      if (ev == null) break;
+      final event = ev;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          DataToast.show(context, state: event);
+        }
+      });
+    }
     final today = VnTime.now();
     final activeCoursesCount = scheduleProvider.getActiveCourses(today).length;
 
@@ -83,9 +102,9 @@ class _HomeShellState extends State<HomeShell> {
       LiquidGlassNavItem(
         icon: FLucideIcons.settings,
         label: 'Cài đặt',
-        tooltip: 'Cài đặt',
+        tooltip: scheduleProvider.isOfflineMode ? 'Đang offline' : 'Cài đặt',
         showBadge: scheduleProvider.isOfflineMode,
-        badgeColor: Theme.of(context).colorScheme.error,
+        badgeColor: Theme.of(context).colorScheme.onSurfaceVariant,
       ),
     ];
 
