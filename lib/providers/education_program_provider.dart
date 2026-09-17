@@ -1,16 +1,14 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:tlucalendar/core/error/failures.dart';
+import 'package:tlucalendar/core/cache/education_program_cache_manager.dart';
 import 'package:tlucalendar/features/education_program/domain/entities/education_program.dart';
-import 'package:tlucalendar/features/education_program/data/models/education_program_model.dart';
-import 'package:tlucalendar/features/education_program/domain/usecases/get_education_program.dart';
 import 'package:tlucalendar/providers/auth_provider.dart';
 
 class EducationProgramProvider extends ChangeNotifier {
-  final GetEducationProgram getEducationProgramUseCase;
+  final EducationProgramCacheManager _cacheManager;
 
-  EducationProgramProvider({required this.getEducationProgramUseCase});
+  EducationProgramProvider({
+    required EducationProgramCacheManager cacheManager,
+  }) : _cacheManager = cacheManager;
 
   AuthProvider? _authProvider;
 
@@ -30,98 +28,55 @@ class EducationProgramProvider extends ChangeNotifier {
     _program = null;
     _errorMessage = null;
     _isLoading = false;
+    _cacheManager.invalidateAll();
     notifyListeners();
   }
 
-  Future<void> loadCachedProgram() async {
-    if (_program != null) return;
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      final cachedString = prefs.getString('cached_education_program');
-      if (cachedString != null) {
-        _program = EducationProgramModel.fromCacheJson(jsonDecode(cachedString));
-        notifyListeners();
-      }
-    } catch (e) {
-      // Ignore cache load errors
-    }
-  }
-
-  Future<void> fetchProgram(String accessToken, {bool forceRefresh = false}) async {
+  Future<void> fetchProgram(
+    String accessToken, {
+    bool forceRefresh = false,
+  }) async {
     _errorMessage = null;
 
-    await loadCachedProgram();
+    // Preload from SharedPreferences (stale)
+    if (!forceRefresh && _program == null) {
+      await _cacheManager.preloadFromLocal();
+    }
 
     if (forceRefresh || _program == null) {
       _isLoading = true;
       notifyListeners();
     }
 
-    final result = await getEducationProgramUseCase(
-      GetEducationProgramParams(accessToken: accessToken),
-    );
+    try {
+      final result = await _cacheManager.getProgram(
+        accessToken,
+        forceRefresh: forceRefresh,
+      );
 
-    await result.fold(
-      (failure) async {
-        if (_authProvider != null && await _authProvider!.reLogin()) {
+      _program = result.data;
+    } catch (e) {
+      // Try relogin
+      if (_authProvider != null) {
+        try {
           final newToken = _authProvider!.accessToken;
-          if (newToken == null) {
-            _errorMessage = _mapFailureToMessage(failure);
-          } else {
-            final newResult = await getEducationProgramUseCase(
-              GetEducationProgramParams(accessToken: newToken),
-            );
-            newResult.fold(
-              (f) {
-                _errorMessage = _mapFailureToMessage(f);
-              },
-              (program) {
-                _program = program;
-                _saveToCache(program);
-              },
-            );
+          if (newToken != null) {
+            final result = await _cacheManager.getProgram(newToken);
+            _program = result.data;
           }
-        } else {
+        } catch (_) {
           if (_program == null || forceRefresh) {
-            _errorMessage = _mapFailureToMessage(failure);
+            _errorMessage = 'Không thể kết nối đến máy chủ TLU';
           }
         }
-      },
-      (program) async {
-        _program = program;
-        _saveToCache(program);
-      },
-    );
+      } else {
+        if (_program == null || forceRefresh) {
+          _errorMessage = 'Không thể kết nối đến máy chủ TLU';
+        }
+      }
+    }
 
     _isLoading = false;
     notifyListeners();
-  }
-
-  Future<void> _saveToCache(EducationProgram program) async {
-    try {
-      if (program is EducationProgramModel) {
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('cached_education_program', jsonEncode(program.toJson()));
-      } else {
-        final model = EducationProgramModel(
-          id: program.id,
-          name: program.name,
-          code: program.code,
-          subjects: program.subjects,
-        );
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('cached_education_program', jsonEncode(model.toJson()));
-      }
-    } catch (e) {
-      // Ignore cache save errors
-    }
-  }
-
-  String _mapFailureToMessage(Failure failure) {
-    if (failure is ServerFailure) {
-      return failure.message;
-    } else {
-      return 'Không thể kết nối đến máy chủ TLU';
-    }
   }
 }

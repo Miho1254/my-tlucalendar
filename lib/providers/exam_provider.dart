@@ -1,45 +1,31 @@
+import 'package:tlucalendar/core/cache/exam_cache_manager.dart';
+import 'package:tlucalendar/core/cache/schedule_cache_manager.dart';
 import 'package:tlucalendar/features/exam/data/models/exam_dtos.dart' as Legacy;
-import 'package:tlucalendar/services/log_service.dart';
 import 'package:tlucalendar/services/notification_service.dart';
-import 'package:tlucalendar/features/exam/domain/usecases/get_exam_rooms_usecase.dart';
-import 'package:tlucalendar/features/exam/domain/usecases/get_exam_schedules_usecase.dart';
-import 'package:tlucalendar/features/schedule/domain/usecases/get_school_years_usecase.dart';
-import 'package:tlucalendar/features/schedule/domain/usecases/get_course_hours_usecase.dart';
 import 'package:tlucalendar/features/schedule/domain/entities/course_hour.dart';
-import 'package:tlucalendar/core/error/failures.dart';
 import 'package:tlucalendar/features/schedule/domain/entities/school_year.dart';
 import 'package:tlucalendar/features/exam/domain/entities/exam_schedule.dart';
 import 'package:tlucalendar/features/exam/domain/entities/exam_room.dart';
 import 'package:intl/intl.dart';
-import 'package:tlucalendar/services/auto_refresh_service.dart';
-import 'package:tlucalendar/features/exam/domain/repositories/exam_repository.dart';
-import 'package:flutter/foundation.dart'; // For ChangeNotifier
+import 'package:flutter/foundation.dart';
 import 'package:tlucalendar/providers/auth_provider.dart';
 
 class ExamProvider with ChangeNotifier {
-  final _log = LogService();
-
-  final GetExamSchedulesUseCase getExamSchedulesUseCase;
-  final GetExamRoomsUseCase getExamRoomsUseCase;
-  final GetSchoolYearsUseCase getSchoolYearsUseCase;
-  final GetCourseHoursUseCase getCourseHoursUseCase;
-  final ExamRepository examRepository;
+  final ExamCacheManager _examCache;
+  final ScheduleCacheManager _scheduleCache;
 
   AuthProvider? _authProvider;
 
   ExamProvider({
-    required this.getExamSchedulesUseCase,
-    required this.getExamRoomsUseCase,
-    required this.getSchoolYearsUseCase,
-    required this.getCourseHoursUseCase,
-    required this.examRepository,
-  });
+    required ExamCacheManager examCacheManager,
+    required ScheduleCacheManager scheduleCacheManager,
+  })  : _examCache = examCacheManager,
+        _scheduleCache = scheduleCacheManager;
 
   void setAuthProvider(AuthProvider auth) {
     _authProvider = auth;
   }
 
-  // Clear data on logout
   void clearData() {
     _registerPeriods = [];
     _availableSemesters = [];
@@ -54,6 +40,7 @@ class ExamProvider with ChangeNotifier {
     _isLoadingRooms = false;
     _errorMessage = null;
     _roomErrorMessage = null;
+    _examCache.invalidateAll();
     notifyListeners();
   }
 
@@ -91,7 +78,7 @@ class ExamProvider with ChangeNotifier {
       return _registerPeriods.firstWhere(
         (period) => period.id == _selectedRegisterPeriodId,
       );
-    } catch (e) {
+    } catch (_) {
       return null;
     }
   }
@@ -102,7 +89,7 @@ class ExamProvider with ChangeNotifier {
       return _availableSemesters.firstWhere(
         (semester) => semester.id == _selectedSemesterId,
       );
-    } catch (e) {
+    } catch (_) {
       return null;
     }
   }
@@ -114,73 +101,35 @@ class ExamProvider with ChangeNotifier {
   Future<void> init(String accessToken) async {
     _isLoadingSemesters = true;
     notifyListeners();
-    String currentToken = accessToken;
+
     try {
-      // Fetch Course Hours concurrently or sequentially
-      // 1. Course Hours first (ignoring errors usually, but let's try to get them)
-      var hoursResult = await getCourseHoursUseCase(currentToken);
-      // We don't retry JUST for hours, but if we retry for years, we might retry hours too.
+      await _scheduleCache.preloadFromLocal();
 
-      // 2. School Years
-      var result = await getSchoolYearsUseCase(currentToken);
+      final yearsResult = await _scheduleCache.getSchoolYears(accessToken);
+      _populateSemesters(yearsResult.data);
 
-      bool shouldRetry = false;
-      result.fold((l) {
-        if (l is! CachedDataFailure) shouldRetry = true;
-      }, (r) {});
+      final hoursResult = await _scheduleCache.getCourseHours(accessToken);
+      _courseHours = hoursResult.data;
 
-      // If hours failed with something retriable, maybe we should also retry?
-      // But Years is the main blocker.
-
-      if (shouldRetry && _authProvider != null) {
-        if (await _authProvider!.reLogin()) {
-          currentToken = _authProvider!.accessToken!;
-          // Retry both
-          hoursResult = await getCourseHoursUseCase(currentToken);
-          result = await getSchoolYearsUseCase(currentToken);
-        }
+      if (_errorMessage != null && _availableSemesters.isNotEmpty) {
+        _errorMessage = null;
       }
+    } catch (e) {
+      debugPrint('ExamProvider init failed: $e');
+      _errorMessage = e.toString();
 
-      hoursResult.fold((l) => null, (r) => _courseHours = r);
-
-      result.fold(
-        (l) {
-          if (l is CachedDataFailure<List<SchoolYear>>) {
-            // Use cached data
-            _populateSemesters(l.data);
-            _errorMessage = l.message;
-          } else {
-            _errorMessage = l.message;
-            _log.log(
-              'Error fetching school years: ${l.message}',
-              level: LogLevel.error,
-            );
-          }
-        },
-        (r) {
-          _populateSemesters(r);
-          // If successful launch, clear any initial error
-          if (_errorMessage != null && _availableSemesters.isNotEmpty) {
+      if (_authProvider != null) {
+        try {
+          final newToken = _authProvider!.accessToken;
+          if (newToken != null) {
+            final yearsResult = await _scheduleCache.getSchoolYears(newToken);
+            _populateSemesters(yearsResult.data);
             _errorMessage = null;
           }
-        },
-      );
-    } catch (e) {
-      debugPrint(
-        'ExamProvider init failed ($e). Attempting robust auto-refresh...',
-      );
-      try {
-        await AutoRefreshService.triggerRefresh(accessToken: currentToken);
-        // Retry School Years only as it is critical for ExamProvider init
-        final result = await getSchoolYearsUseCase(currentToken);
-        result.fold(
-          (l) => _errorMessage = l.message,
-          (r) => _populateSemesters(r),
-        );
-      } catch (retryError) {
-        _errorMessage = e.toString();
+        } catch (_) {}
       }
     }
+
     _isLoadingSemesters = false;
     notifyListeners();
   }
@@ -207,7 +156,8 @@ class ExamProvider with ChangeNotifier {
           _selectedSemesterId != null &&
           _availableSemesters.any((s) => s.id == _selectedSemesterId);
       if (!selectedStillExists) {
-        final currents = _availableSemesters.where((s) => s.isCurrent).toList();
+        final currents =
+            _availableSemesters.where((s) => s.isCurrent).toList();
         final mainCurrent = currents
             .where((s) => s.semesterName.toLowerCase().contains('học kỳ'))
             .firstOrNull;
@@ -249,27 +199,9 @@ class ExamProvider with ChangeNotifier {
     _errorMessage = null;
 
     if (!forceRefresh) {
-      // Step 1: Load cache immediately without spinning
-      final cacheResult = await examRepository.getCachedExamSchedules(
-        semesterId,
-      );
-      cacheResult.fold((_) => null, (cachedSchedules) {
-        if (cachedSchedules.isNotEmpty) {
-          _populateRegisterPeriods(
-            cachedSchedules,
-            semesterId,
-            accessToken,
-            rawToken,
-            preferredPeriodId: previousPeriodId,
-            preferredPeriodName: previousPeriodName,
-            forceRefresh: false,
-          );
-          notifyListeners();
-        }
-      });
+      await _examCache.preloadSchedules(semesterId);
     }
 
-    // Step 2: Show loading spinner if memory is empty OR forceRefresh is true
     final shouldShowSpinner = _registerPeriods.isEmpty || forceRefresh;
     if (shouldShowSpinner) {
       _isLoading = true;
@@ -277,74 +209,53 @@ class ExamProvider with ChangeNotifier {
       notifyListeners();
     }
 
-    String currentToken = accessToken;
-
     try {
-      var result = await getExamSchedulesUseCase(
-        GetExamSchedulesParams(
-          semesterId: semesterId,
-          accessToken: currentToken,
-          rawToken: rawToken,
-        ),
+      final result = await _examCache.getExamSchedules(
+        semesterId,
+        accessToken,
+        rawToken,
+        forceRefresh: forceRefresh,
       );
 
-      bool shouldRetry = false;
-      result.fold((l) {
-        if (l is! CachedDataFailure) shouldRetry = true;
-      }, (r) {});
-
-      if (shouldRetry && _authProvider != null) {
-        if (await _authProvider!.reLogin()) {
-          currentToken = _authProvider!.accessToken!;
+      _populateRegisterPeriods(
+        result.data,
+        semesterId,
+        accessToken,
+        rawToken,
+        preferredPeriodId: previousPeriodId,
+        preferredPeriodName: previousPeriodName,
+        forceRefresh: forceRefresh,
+      );
+    } catch (e) {
+      if (_authProvider != null) {
+        try {
+          final newToken = _authProvider!.accessToken;
           final newRaw = _authProvider!.rawTokenStr ?? rawToken;
-
-          result = await getExamSchedulesUseCase(
-            GetExamSchedulesParams(
-              semesterId: semesterId,
-              accessToken: currentToken,
-              rawToken: newRaw,
-            ),
-          );
-        }
-      }
-
-      result.fold(
-        (l) {
-          if (l is CachedDataFailure<List<ExamSchedule>>) {
+          if (newToken != null) {
+            final result = await _examCache.getExamSchedules(
+              semesterId, newToken, newRaw,
+            );
             _populateRegisterPeriods(
-              l.data,
+              result.data,
               semesterId,
-              currentToken,
-              rawToken,
+              newToken,
+              newRaw,
               preferredPeriodId: previousPeriodId,
               preferredPeriodName: previousPeriodName,
               forceRefresh: forceRefresh,
             );
-            _errorMessage = l.message;
-          } else {
-            if (shouldShowSpinner) {
-              _errorMessage = l.message;
-              _selectedRegisterPeriodId = null;
-            }
           }
-        },
-        (r) {
-          _populateRegisterPeriods(
-            r,
-            semesterId,
-            currentToken,
-            rawToken,
-            preferredPeriodId: previousPeriodId,
-            preferredPeriodName: previousPeriodName,
-            forceRefresh: forceRefresh,
-          );
-        },
-      );
-    } catch (e) {
-      if (shouldShowSpinner) {
-        _errorMessage = e.toString();
+        } catch (_) {
+          if (shouldShowSpinner) {
+            _errorMessage = e.toString();
+          }
+        }
+      } else {
+        if (shouldShowSpinner) {
+          _errorMessage = e.toString();
+          _selectedRegisterPeriodId = null;
+        }
       }
-      _log.log('Exception fetching exam schedules: $e', level: LogLevel.error);
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -396,7 +307,6 @@ class ExamProvider with ChangeNotifier {
                 .firstOrNull;
       _selectedRegisterPeriodId =
           preferred?.id ?? sameName?.id ?? _registerPeriods.first.id;
-      // Trigger fetch for the default selected period
       fetchExamRoomDetails(
         accessToken,
         semesterId,
@@ -422,11 +332,7 @@ class ExamProvider with ChangeNotifier {
       _selectedRegisterPeriodId = periodId;
       notifyListeners();
       fetchExamRoomDetails(
-        accessToken,
-        semesterId,
-        periodId,
-        round,
-        rawToken,
+        accessToken, semesterId, periodId, round, rawToken,
         forceRefresh: forceRefresh,
       );
     }
@@ -452,90 +358,61 @@ class ExamProvider with ChangeNotifier {
     _roomErrorMessage = null;
 
     if (!forceRefresh) {
-      // Step 1: Load cache immediately without spinning
-      final cacheResult = await examRepository.getCachedExamRooms(
+      await _examCache.preloadRooms(
         semesterId: semesterId,
         scheduleId: scheduleId,
         round: round,
       );
-      cacheResult.fold((_) => null, (cachedRooms) {
-        if (cachedRooms.isNotEmpty) {
-          _populateExamRooms(cachedRooms);
-          notifyListeners();
-        }
-      });
     }
 
-    // Step 2: Show loading spinner if memory is empty OR forceRefresh is true
     final shouldShowSpinner = _examRooms.isEmpty || forceRefresh;
     if (shouldShowSpinner) {
       _isLoadingRooms = true;
       notifyListeners();
     }
 
-    String currentToken = accessToken;
-
     try {
-      var result = await getExamRoomsUseCase(
-        GetExamRoomsParams(
-          semesterId: semesterId,
-          scheduleId: scheduleId,
-          round: round,
-          accessToken: currentToken,
-          rawToken: rawToken,
-        ),
+      final result = await _examCache.getExamRooms(
+        semesterId: semesterId,
+        scheduleId: scheduleId,
+        round: round,
+        accessToken: accessToken,
+        rawToken: rawToken,
+        forceRefresh: forceRefresh,
       );
 
-      bool shouldRetry = false;
-      result.fold((l) {
-        if (l is! CachedDataFailure) shouldRetry = true;
-      }, (r) {});
-
-      if (shouldRetry && _authProvider != null) {
-        if (await _authProvider!.reLogin()) {
-          currentToken = _authProvider!.accessToken!;
+      _populateExamRooms(result.data);
+    } catch (e) {
+      if (_authProvider != null) {
+        try {
+          final newToken = _authProvider!.accessToken;
           final newRaw = _authProvider!.rawTokenStr ?? rawToken;
-
-          result = await getExamRoomsUseCase(
-            GetExamRoomsParams(
+          if (newToken != null) {
+            final result = await _examCache.getExamRooms(
               semesterId: semesterId,
               scheduleId: scheduleId,
               round: round,
-              accessToken: currentToken,
+              accessToken: newToken,
               rawToken: newRaw,
-            ),
-          );
-        }
-      }
-
-      result.fold(
-        (l) {
-          if (l is CachedDataFailure<List<ExamRoom>>) {
-            _populateExamRooms(l.data);
-            _roomErrorMessage = l.message;
-          } else {
-            if (shouldShowSpinner) {
-              _roomErrorMessage = l.message;
-              _examRooms = []; // Clear if real error
-            }
+            );
+            _populateExamRooms(result.data);
           }
-        },
-        (r) {
-          _populateExamRooms(r);
-        },
-      );
-    } catch (e) {
-      if (shouldShowSpinner) {
-        _roomErrorMessage = e.toString();
+        } catch (_) {
+          if (shouldShowSpinner) {
+            _roomErrorMessage = 'Không thể kết nối đến máy chủ TLU';
+          }
+        }
+      } else {
+        if (shouldShowSpinner) {
+          _roomErrorMessage = e.toString();
+          _examRooms = [];
+        }
       }
     } finally {
       _isLoadingRooms = false;
-
-      // Schedule notifications
       if (_examRooms.isNotEmpty) {
         _scheduleNotifications();
       }
-
       notifyListeners();
     }
   }
@@ -572,7 +449,6 @@ class ExamProvider with ChangeNotifier {
     final notificationService = NotificationService();
     for (var room in _examRooms) {
       if (room.examRoom?.examDate != null && room.examRoom?.examHour != null) {
-        // Parse start time
         final timeStr = room.examRoom!.examHour!.startString;
         final parts = timeStr.split(':');
         if (parts.length >= 2) {
@@ -584,13 +460,8 @@ class ExamProvider with ChangeNotifier {
               room.examRoom!.examDate!,
             );
             final examDateTime = DateTime(
-              date.year,
-              date.month,
-              date.day,
-              h,
-              m,
+              date.year, date.month, date.day, h, m,
             );
-
             notificationService.scheduleExamNotifications(room, examDateTime);
           }
         }
@@ -601,21 +472,14 @@ class ExamProvider with ChangeNotifier {
   Legacy.ExamHour _parseExamHour(String? timeStr) {
     if (timeStr == null || timeStr.isEmpty) {
       return Legacy.ExamHour(
-        id: 0,
-        name: 'Chưa có',
-        startString: '',
-        endString: '',
-        start: 0,
-        end: 0,
-        indexNumber: 0,
-        type: 0,
+        id: 0, name: 'Chưa có', startString: '', endString: '',
+        start: 0, end: 0, indexNumber: 0, type: 0,
       );
     }
 
-    // Expected format: "10-12" or "07:00-09:00"
     String startStr = '';
     String endStr = '';
-    String shiftName = timeStr; // Default to original string
+    String shiftName = timeStr;
     int start = 0;
 
     if (timeStr.contains('-')) {
@@ -624,12 +488,10 @@ class ExamProvider with ChangeNotifier {
         startStr = parts[0].trim();
         endStr = parts[1].trim();
 
-        // Check if these are periods (digits only, small length)
         if (RegExp(r'^\d{1,2}$').hasMatch(startStr)) {
           start = int.tryParse(startStr) ?? 0;
           int end = int.tryParse(endStr) ?? 0;
 
-          // Look up in _courseHours
           String? realStartTime;
           String? realEndTime;
 
@@ -646,16 +508,13 @@ class ExamProvider with ChangeNotifier {
           }
 
           if (realStartTime != null && realEndTime != null) {
-            // Found exact clock times!
             startStr = realStartTime;
             endStr = realEndTime;
           } else {
-            // Fallback to "Tiết X"
             startStr = 'Tiết $startStr';
             endStr = 'Tiết $endStr';
           }
 
-          // Calculate Shift (Ca thi)
           if (start >= 1 && start <= 3) {
             shiftName = 'Ca 1 (Sáng)';
           } else if (start >= 4 && start <= 6)
@@ -671,15 +530,8 @@ class ExamProvider with ChangeNotifier {
     }
 
     return Legacy.ExamHour(
-      id: 0,
-      name: shiftName,
-      startString: startStr,
-      endString: endStr,
-      start: start,
-      end: 0,
-      indexNumber: 0,
-      type: 0,
-      code: '',
+      id: 0, name: shiftName, startString: startStr, endString: endStr,
+      start: start, end: 0, indexNumber: 0, type: 0, code: '',
     );
   }
 }

@@ -1,6 +1,12 @@
 import 'package:get_it/get_it.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:tlucalendar/core/network/network_client.dart';
+import 'package:tlucalendar/core/cache/cache_manager.dart';
+import 'package:tlucalendar/core/cache/schedule_cache_manager.dart';
+import 'package:tlucalendar/core/cache/exam_cache_manager.dart';
+import 'package:tlucalendar/core/cache/grade_cache_manager.dart';
+import 'package:tlucalendar/core/cache/tuition_cache_manager.dart';
+import 'package:tlucalendar/core/cache/education_program_cache_manager.dart';
 
 import 'package:tlucalendar/features/auth/data/datasources/auth_local_data_source.dart';
 import 'package:tlucalendar/features/auth/data/datasources/auth_remote_data_source.dart';
@@ -64,6 +70,9 @@ Future<void> init() async {
   final sharedPreferences = await SharedPreferences.getInstance();
   sl.registerLazySingleton(() => sharedPreferences);
 
+  //! Core - CacheManager
+  sl.registerLazySingleton(() => CacheManager.instance);
+
   //! Features - Auth
   // UseCases
   sl.registerLazySingleton(() => LoginUseCase(sl()));
@@ -94,6 +103,9 @@ Future<void> init() async {
     () => ScheduleRepositoryImpl(remoteDataSource: sl(), localDataSource: sl()),
   );
 
+  // CacheManager
+  sl.registerLazySingleton(() => ScheduleCacheManager(sl<ScheduleRepository>()));
+
   //! Features - Exam
   // UseCases
   sl.registerLazySingleton(() => GetExamSchedulesUseCase(sl()));
@@ -108,6 +120,9 @@ Future<void> init() async {
   sl.registerLazySingleton<ExamRepository>(
     () => ExamRepositoryImpl(remoteDataSource: sl(), localDataSource: sl()),
   );
+
+  // CacheManager
+  sl.registerLazySingleton(() => ExamCacheManager(sl<ExamRepository>()));
 
   // Data Sources
   sl.registerLazySingleton<ExamRemoteDataSource>(
@@ -150,6 +165,9 @@ Future<void> init() async {
       () => GradeRepositoryImpl(remoteDataSource: sl(), localDataSource: sl()));
   sl.registerLazySingleton(() => GetGrades(sl()));
 
+  // CacheManager
+  sl.registerLazySingleton(() => GradeCacheManager(sl<GradeRepository>()));
+
   // Notes
   sl.registerFactory(() => NoteProvider());
 
@@ -167,20 +185,13 @@ Future<void> init() async {
   );
   sl.registerLazySingleton(
     () => ScheduleProvider(
-      getScheduleUseCase: sl(),
-      getSchoolYearsUseCase: sl(),
-      getCurrentSemesterUseCase: sl(),
-      getCourseHoursUseCase: sl(),
-      scheduleRepository: sl(),
+      cacheManager: sl<ScheduleCacheManager>(),
     ),
   );
   sl.registerLazySingleton(
     () => ExamProvider(
-      getExamSchedulesUseCase: sl(),
-      getExamRoomsUseCase: sl(),
-      getSchoolYearsUseCase: sl(),
-      getCourseHoursUseCase: sl(),
-      examRepository: sl(),
+      examCacheManager: sl<ExamCacheManager>(),
+      scheduleCacheManager: sl<ScheduleCacheManager>(),
     ),
   );
   sl.registerLazySingleton(() => ThemeProvider());
@@ -194,8 +205,7 @@ Future<void> init() async {
   );
   sl.registerLazySingleton(
     () => GradeProvider(
-      getGradesUseCase: sl(),
-      gradeRepository: sl(),
+      cacheManager: sl<GradeCacheManager>(),
     ),
   );
 
@@ -205,8 +215,17 @@ Future<void> init() async {
   sl.registerLazySingleton<TuitionRepository>(
       () => TuitionRepositoryImpl(remoteDataSource: sl()));
   sl.registerLazySingleton(() => GetTuitionFee(sl()));
+
+  // CacheManager
+  sl.registerLazySingleton(() => TuitionCacheManager(
+        sl<TuitionRepository>(),
+        prefs: sl(),
+      ));
+
   sl.registerLazySingleton(
-    () => TuitionProvider(getTuitionFeeUseCase: sl()),
+    () => TuitionProvider(
+      cacheManager: sl<TuitionCacheManager>(),
+    ),
   );
 
   //! Features - Education Program
@@ -215,7 +234,16 @@ Future<void> init() async {
   sl.registerLazySingleton<EducationProgramRepository>(
       () => EducationProgramRepositoryImpl(remoteDataSource: sl()));
   sl.registerLazySingleton(() => GetEducationProgram(sl()));
+
+  // CacheManager
+  sl.registerLazySingleton(() => EducationProgramCacheManager(
+        sl<EducationProgramRepository>(),
+        prefs: sl(),
+      ));
+
   sl.registerLazySingleton(
-    () => EducationProgramProvider(getEducationProgramUseCase: sl()),
+    () => EducationProgramProvider(
+      cacheManager: sl<EducationProgramCacheManager>(),
+    ),
   );
 }

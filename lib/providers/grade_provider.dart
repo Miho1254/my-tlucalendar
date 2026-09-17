@@ -1,19 +1,15 @@
 import 'package:flutter/material.dart';
-import 'package:tlucalendar/core/error/failures.dart';
+import 'package:tlucalendar/core/cache/grade_cache_manager.dart';
 import 'package:tlucalendar/features/grades/domain/entities/student_mark.dart';
-import 'package:tlucalendar/features/grades/domain/repositories/grade_repository.dart';
-import 'package:tlucalendar/features/grades/domain/usecases/get_grades.dart';
 import 'package:tlucalendar/features/grades/domain/services/grade_analytics_service.dart';
 import 'package:tlucalendar/providers/auth_provider.dart';
 
 class GradeProvider with ChangeNotifier {
-  final GetGrades getGradesUseCase;
-  final GradeRepository gradeRepository;
+  final GradeCacheManager _cacheManager;
 
   GradeProvider({
-    required this.getGradesUseCase,
-    required this.gradeRepository,
-  });
+    required GradeCacheManager cacheManager,
+  }) : _cacheManager = cacheManager;
 
   AuthProvider? _authProvider;
 
@@ -31,98 +27,74 @@ class GradeProvider with ChangeNotifier {
   String? get errorMessage => _errorMessage;
   GradeAnalyticsResult? get analyticsResult => _analyticsResult;
 
-  // Clear data on logout
   void clearData() {
     _grades = [];
     _analyticsResult = null;
     _errorMessage = null;
     _isLoading = false;
+    _cacheManager.invalidateAll();
     notifyListeners();
   }
 
-  // Grouped by Semester: Map<SemesterName, List<StudentMark>>
   Map<String, List<StudentMark>> get groupedGrades {
     final Map<String, List<StudentMark>> grouped = {};
     for (var grade in _grades) {
-      if (!grouped.containsKey(grade.semesterName)) {
-        grouped[grade.semesterName] = [];
-      }
-      grouped[grade.semesterName]!.add(grade);
+      grouped.putIfAbsent(grade.semesterName, () => []).add(grade);
     }
     return grouped;
   }
 
-  Future<void> fetchGrades(String accessToken, {bool forceRefresh = false}) async {
+  Future<void> fetchGrades(
+    String accessToken, {
+    bool forceRefresh = false,
+  }) async {
     _errorMessage = null;
 
+    // Preload from SQLite (stale)
     if (!forceRefresh) {
-      // Step 1: Load cache immediately without spinning
-      final cacheResult = await gradeRepository.getCachedGrades();
-      cacheResult.fold(
-        (_) => null,
-        (cachedGrades) {
-          if (cachedGrades.isNotEmpty) {
-            _grades = cachedGrades;
-            _grades.sort((a, b) => b.semesterId.compareTo(a.semesterId));
-            _analyticsResult = GradeAnalyticsService.analyze(_grades);
-            notifyListeners();
-          }
-        },
-      );
+      await _cacheManager.preloadFromLocal();
     }
 
-    // Step 2: Show spinner if memory is empty OR forceRefresh is true
+    // Show spinner only if no data yet or force refresh
     final shouldShowSpinner = _grades.isEmpty || forceRefresh;
     if (shouldShowSpinner) {
       _isLoading = true;
       notifyListeners();
     }
 
-    // Step 3: Fetch remote
-    final result = await getGradesUseCase(
-      GetGradesParams(accessToken: accessToken),
-    );
+    try {
+      final result = await _cacheManager.getGrades(
+        accessToken,
+        forceRefresh: forceRefresh,
+      );
 
-    await result.fold(
-      (failure) async {
-        if (_authProvider != null && await _authProvider!.reLogin()) {
-          final newResult = await getGradesUseCase(
-            GetGradesParams(accessToken: _authProvider!.accessToken!),
-          );
-          newResult.fold(
-            (f) {
-              if (shouldShowSpinner) {
-                _errorMessage = _mapFailureToMessage(f);
-              }
-            },
-            (grades) {
-              _grades = grades;
-              _grades.sort((a, b) => b.semesterId.compareTo(a.semesterId));
-              _analyticsResult = GradeAnalyticsService.analyze(_grades);
-            },
-          );
-        } else {
+      _grades = result.data;
+      _grades.sort((a, b) => b.semesterId.compareTo(a.semesterId));
+      _analyticsResult = GradeAnalyticsService.analyze(_grades);
+    } catch (e) {
+      // Try relogin
+      if (_authProvider != null) {
+        try {
+          final newToken = _authProvider!.accessToken;
+          if (newToken != null) {
+            final result = await _cacheManager.getGrades(newToken);
+            _grades = result.data;
+            _grades.sort((a, b) => b.semesterId.compareTo(a.semesterId));
+            _analyticsResult = GradeAnalyticsService.analyze(_grades);
+          }
+        } catch (_) {
           if (shouldShowSpinner) {
-            _errorMessage = _mapFailureToMessage(failure);
+            _errorMessage = 'Không thể kết nối đến máy chủ TLU';
           }
         }
-      },
-      (grades) async {
-        _grades = grades;
-        _grades.sort((a, b) => b.semesterId.compareTo(a.semesterId));
-        _analyticsResult = GradeAnalyticsService.analyze(_grades);
-      },
-    );
+      } else {
+        if (shouldShowSpinner) {
+          _errorMessage = 'Không thể kết nối đến máy chủ TLU';
+        }
+      }
+    }
 
     _isLoading = false;
     notifyListeners();
-  }
-
-  String _mapFailureToMessage(Failure failure) {
-    if (failure is ServerFailure) {
-      return failure.message;
-    } else {
-      return 'Không thể kết nối đến máy chủ TLU';
-    }
   }
 }

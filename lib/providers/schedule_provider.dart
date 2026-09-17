@@ -1,44 +1,27 @@
 import 'package:flutter/material.dart';
-
-import 'package:tlucalendar/core/error/failures.dart';
+import 'package:tlucalendar/core/cache/schedule_cache_manager.dart';
 import 'package:tlucalendar/core/native/native_parser.dart';
 import 'package:tlucalendar/features/schedule/domain/entities/course.dart';
 import 'package:tlucalendar/features/schedule/domain/entities/course_hour.dart';
 import 'package:tlucalendar/features/schedule/domain/entities/school_year.dart';
 import 'package:tlucalendar/features/schedule/domain/entities/semester.dart';
-import 'package:tlucalendar/features/schedule/domain/repositories/schedule_repository.dart';
-import 'package:tlucalendar/features/schedule/domain/usecases/get_course_hours_usecase.dart';
-import 'package:tlucalendar/features/schedule/domain/usecases/get_current_semester_usecase.dart';
-import 'package:tlucalendar/features/schedule/domain/usecases/get_schedule_usecase.dart';
-import 'package:tlucalendar/features/schedule/domain/usecases/get_school_years_usecase.dart';
 import 'package:tlucalendar/services/notification_service.dart';
 import 'package:tlucalendar/widgets/update_banner.dart';
-
-import 'package:tlucalendar/services/auto_refresh_service.dart';
 import 'package:tlucalendar/providers/auth_provider.dart';
 
 class ScheduleProvider extends ChangeNotifier {
-  final GetScheduleUseCase getScheduleUseCase;
-  final GetSchoolYearsUseCase getSchoolYearsUseCase;
-  final GetCurrentSemesterUseCase getCurrentSemesterUseCase;
-  final GetCourseHoursUseCase getCourseHoursUseCase;
-  final ScheduleRepository scheduleRepository;
+  final ScheduleCacheManager _cacheManager;
 
   AuthProvider? _authProvider;
 
   ScheduleProvider({
-    required this.getScheduleUseCase,
-    required this.getSchoolYearsUseCase,
-    required this.getCurrentSemesterUseCase,
-    required this.getCourseHoursUseCase,
-    required this.scheduleRepository,
-  });
+    required ScheduleCacheManager cacheManager,
+  }) : _cacheManager = cacheManager;
 
   void setAuthProvider(AuthProvider auth) {
     _authProvider = auth;
   }
 
-  // State
   List<SchoolYear> _schoolYears = [];
   List<Course> _courses = [];
   List<CourseHour> _courseHours = [];
@@ -50,23 +33,19 @@ class ScheduleProvider extends ChangeNotifier {
   bool _isLoading = false;
   String? _errorMessage;
 
-  /// Pending toast events — consumers drain via [consumeToastEvent].
   final List<DataToastState> _pendingToasts = [];
 
-  // Getters
   List<SchoolYear> get schoolYears => _schoolYears;
   List<Course> get courses => _courses;
   List<CourseHour> get courseHours => _courseHours;
   Semester? get currentSemester => _currentSemester;
-  Semester? get selectedSemester =>
-      _currentSemester; // Alias for UI if needed, or implement distinct selection
+  Semester? get selectedSemester => _currentSemester;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
   bool get isOfflineMode => _isOfflineMode;
   bool get isReconnecting => _isReconnecting;
   bool get isRefreshing => _isRefreshing;
 
-  /// Drain the next pending toast event, or null if none.
   DataToastState? consumeToastEvent() {
     if (_pendingToasts.isEmpty) return null;
     return _pendingToasts.removeAt(0);
@@ -76,7 +55,6 @@ class ScheduleProvider extends ChangeNotifier {
     _pendingToasts.add(state);
   }
 
-  // Clear data on logout
   void clearData() {
     _schoolYears = [];
     _courses = [];
@@ -87,41 +65,10 @@ class ScheduleProvider extends ChangeNotifier {
     _isRefreshing = false;
     _isLoading = false;
     _errorMessage = null;
+    _cacheManager.invalidateAll();
     notifyListeners();
   }
 
-  Future<void> _loadCachedData() async {
-    try {
-      final yearsResult = await scheduleRepository.getCachedSchoolYears();
-      yearsResult.fold((_) {}, (years) {
-        if (years.isNotEmpty) {
-          _processSchoolYears(years);
-        }
-      });
-
-      final hoursResult = await scheduleRepository.getCachedCourseHours();
-      hoursResult.fold((_) {}, (hours) {
-        _courseHours = hours;
-      });
-
-      // Load cached schedule for current semester
-      if (_currentSemester != null) {
-        final cachedCourses = await scheduleRepository.getCachedCourses(_currentSemester!.id);
-        cachedCourses.fold((_) {}, (courses) {
-          _courses = courses;
-        });
-      }
-
-      if (_schoolYears.isNotEmpty || _courses.isNotEmpty) {
-        _isOfflineMode = true;
-        notifyListeners();
-      }
-    } catch (_) {
-      // Ignore cache load errors
-    }
-  }
-
-  // Init Data
   Future<void> init(String accessToken) async {
     _isLoading = true;
     _errorMessage = null;
@@ -130,140 +77,57 @@ class ScheduleProvider extends ChangeNotifier {
     _isRefreshing = false;
     notifyListeners();
 
-    // 0. Load cache first — show data immediately
-    await _loadCachedData();
-
-    String currentToken = accessToken;
-
     try {
-      // 1 & 2. Fetch School Years and Course Hours PARALLEL
-      // This maximizes "Transmission" usage.
-      var results = await Future.wait([
-        getSchoolYearsUseCase(currentToken),
-        getCourseHoursUseCase(currentToken),
-      ]);
+      await _cacheManager.preloadFromLocal();
 
-      // Cast results safely
-      var yearsResult =
-          results[0] as dynamic; // Either<Failure, List<SchoolYear>>
-      var hoursResult =
-          results[1] as dynamic; // Either<Failure, List<CourseHour>>
-
-      bool shouldRetry = false;
-
-      // Check Years failure
-      yearsResult.fold((f) {
-        if (f is! CachedDataFailure) shouldRetry = true;
-      }, (r) {});
-
-      // Check Hours failure? (Optional, but good for "Extreme Optimization")
-      if (!shouldRetry) {
-        hoursResult.fold((f) {
-          if (f is! CachedDataFailure) shouldRetry = true;
-        }, (r) {});
+      final yearsResult = await _cacheManager.getSchoolYears(accessToken);
+      _processSchoolYears(yearsResult.data);
+      _isOfflineMode = yearsResult.isFromCache && yearsResult.isStale;
+      if (_isOfflineMode) {
+        _enqueueToast(DataToastState.offline);
+      } else if (!yearsResult.isFromCache) {
+        _enqueueToast(DataToastState.success);
       }
 
-      if (shouldRetry && _authProvider != null) {
-        debugPrint('Initial parallel fetch failed, attempting auto-relogin...');
-        if (await _authProvider!.reLogin()) {
-          currentToken = _authProvider!.accessToken!;
+      final hoursResult = await _cacheManager.getCourseHours(accessToken);
+      _courseHours = hoursResult.data;
 
-          // Retry PARALLEL with new token
-          results = await Future.wait([
-            getSchoolYearsUseCase(currentToken),
-            getCourseHoursUseCase(currentToken),
-          ]);
-          yearsResult = results[0];
-          hoursResult = results[1];
-        }
-      }
-
-      // Process Years
-      await yearsResult.fold(
-        (failure) async {
-          if (failure is CachedDataFailure<List<SchoolYear>>) {
-            _isOfflineMode = true;
-            _enqueueToast(DataToastState.offline);
-            _processSchoolYears(failure.data);
-          } else {
-            _errorMessage = failure.message;
-            _enqueueToast(DataToastState.error);
-          }
-        },
-        (years) async {
-          _isOfflineMode = false;
-          _enqueueToast(DataToastState.success);
-          _processSchoolYears(years);
-        },
-      );
-
-      // Process Hours
-      hoursResult.fold(
-        (failure) {
-          if (failure is CachedDataFailure<List<CourseHour>>) {
-            _courseHours = failure.data;
-            debugPrint('Using cached Course Hours');
-          } else {
-            debugPrint('Failed to fetch Course Hours: ${failure.message}');
-          }
-        },
-        (hours) {
-          _courseHours = hours;
-        },
-      );
-
-      // 4. If we have a current semester, load its schedule
-      // This depends on SchoolYears so it must be sequential to it.
       if (_currentSemester != null) {
-        await loadSchedule(currentToken, _currentSemester!.id);
+        await loadSchedule(accessToken, _currentSemester!.id);
       }
     } catch (e) {
-      debugPrint(
-        'ScheduleProvider init failed ($e). Attempting robust auto-refresh...',
-      );
-      try {
-        _isReconnecting = true;
-        notifyListeners();
+      debugPrint('ScheduleProvider init failed: $e');
+      _errorMessage = e.toString();
+      _enqueueToast(DataToastState.error);
 
-        // Last Resort: Trigger Robust Sync (Login + Fetch + Cache)
-        await AutoRefreshService.triggerRefresh(accessToken: currentToken);
+      if (_authProvider != null) {
+        try {
+          _isReconnecting = true;
+          notifyListeners();
 
-        // If successful, retry fetching (logic will likely hit Cache or Network success)
-        var results = await Future.wait([
-          getSchoolYearsUseCase(currentToken),
-          getCourseHoursUseCase(currentToken),
-        ]);
+          final newToken = _authProvider!.accessToken;
+          if (newToken != null) {
+            final yearsResult = await _cacheManager.getSchoolYears(newToken);
+            _processSchoolYears(yearsResult.data);
 
-        // Process results again
-        var yearsResult = results[0] as dynamic;
-        var hoursResult = results[1] as dynamic;
+            final hoursResult = await _cacheManager.getCourseHours(newToken);
+            _courseHours = hoursResult.data;
 
-        await yearsResult.fold(
-          (f) async {
-            if (f is CachedDataFailure<List<SchoolYear>>) {
-              _isOfflineMode = true;
-              _processSchoolYears(f.data);
-            } else {
-              _errorMessage = f.message;
+            if (_currentSemester != null) {
+              await loadSchedule(newToken, _currentSemester!.id);
             }
-          },
-          (r) async {
-            _isOfflineMode = false;
-            _errorMessage = null;
-            _processSchoolYears(r);
-          },
-        );
-        hoursResult.fold((f) => null, (r) => _courseHours = r);
 
-        if (_currentSemester != null) {
-          await loadSchedule(currentToken, _currentSemester!.id);
+            _errorMessage = null;
+          }
+        } catch (retryError) {
+          debugPrint('Retry failed: $retryError');
+        } finally {
+          _isReconnecting = false;
         }
-      } catch (retryError) {
-        _errorMessage = e.toString(); // Show original error or retry error
       }
     }
+
     _isLoading = false;
-    _isReconnecting = false;
     notifyListeners();
   }
 
@@ -271,7 +135,6 @@ class ScheduleProvider extends ChangeNotifier {
     _schoolYears = years;
     _schoolYears.sort((a, b) => a.startDate.compareTo(b.startDate));
 
-    // 2. Determine Current Semester
     List<Semester> currents = [];
     for (var y in years) {
       for (var s in y.semesters) {
@@ -294,7 +157,6 @@ class ScheduleProvider extends ChangeNotifier {
   }
 
   Future<void> selectSemester(String accessToken, int semesterId) async {
-    // Find semester object
     Semester? found;
     for (var y in _schoolYears) {
       final s = y.semesters.where((s) => s.id == semesterId).firstOrNull;
@@ -321,166 +183,100 @@ class ScheduleProvider extends ChangeNotifier {
     _errorMessage = null;
     _isRefreshing = forceRefresh;
 
-    if (!forceRefresh) {
-      // Step 1: Load cache immediately without spinning
-      final cacheResult = await scheduleRepository.getCachedCourses(semesterId);
-      cacheResult.fold((_) => null, (cachedCourses) {
-        if (cachedCourses.isNotEmpty) {
-          _isOfflineMode = true;
-          _courses = cachedCourses;
-          _scheduleNotifications();
-          notifyListeners();
-        }
-      });
-    }
-
-    // Step 2: Show loading spinner if memory is empty OR forceRefresh is true
-    final shouldShowSpinner = _courses.isEmpty || forceRefresh;
-    if (shouldShowSpinner) {
-      _isLoading = true;
-      notifyListeners();
-    }
-
-    String currentToken = accessToken;
-
-    var result = await getScheduleUseCase(
-      GetScheduleParams(accessToken: currentToken, semesterId: semesterId),
-    );
-
-    bool shouldRetry = false;
-    result.fold((f) {
-      if (f is! CachedDataFailure) shouldRetry = true;
-    }, (r) {});
-
-    if (shouldRetry && _authProvider != null) {
-      if (await _authProvider!.reLogin()) {
-        currentToken = _authProvider!.accessToken!;
-        result = await getScheduleUseCase(
-          GetScheduleParams(accessToken: currentToken, semesterId: semesterId),
-        );
+    try {
+      if (!forceRefresh) {
+        await _cacheManager.preloadCourses(semesterId);
       }
+
+      final result = await _cacheManager.getCourses(
+        semesterId,
+        accessToken,
+        forceRefresh: forceRefresh,
+      );
+
+      _courses = result.data;
+      if (result.isFromCache && result.isStale) {
+        _isOfflineMode = true;
+        _enqueueToast(DataToastState.offline);
+      } else if (!result.isFromCache) {
+        _enqueueToast(DataToastState.success);
+      }
+
+      _scheduleNotifications();
+    } catch (e) {
+      debugPrint('loadSchedule failed: $e');
+      _errorMessage = e.toString();
+      _enqueueToast(DataToastState.error);
     }
 
-    result.fold(
-      (f) {
-        if (f is CachedDataFailure<List<Course>>) {
-          _isOfflineMode = true;
-          _courses = f.data;
-          _enqueueToast(DataToastState.offline);
-          _scheduleNotifications();
-        } else {
-          if (shouldShowSpinner) {
-            _errorMessage = f.message;
-            _enqueueToast(DataToastState.error);
-          }
-        }
-      },
-      (c) {
-        _isOfflineMode = false;
-        _courses = c;
-        if (forceRefresh) {
-          _enqueueToast(DataToastState.success);
-        }
-        _scheduleNotifications();
-      },
-    );
     _isLoading = false;
     _isRefreshing = false;
     notifyListeners();
   }
 
   Future<void> _scheduleNotifications() async {
-    // delay to avoid blocking immediate UI updates
-    await Future.delayed(Duration.zero);
+    try {
+      await Future.delayed(Duration.zero);
+      if (_currentSemester == null || _courses.isEmpty) return;
 
-    if (_currentSemester == null || _courses.isEmpty) return;
+      final notificationService = NotificationService();
+      await notificationService.cancelAllNotifications();
+      if (_currentSemester == null) return;
 
-    final notificationService = NotificationService();
+      final notifications = NativeParser.generateNotifications(
+        _currentSemester!.startDate,
+      );
 
-    // Clear all previous notifications
-    await notificationService.cancelAllNotifications();
-
-    // Optimized Native Notification Generation
-    if (_currentSemester == null) return;
-
-    final notifications = NativeParser.generateNotifications(
-      _currentSemester!.startDate,
-    );
-
-    if (notifications.isEmpty && _courses.isNotEmpty) {
-      debugPrint("Native Notifications returned empty! Using Dart fallback.");
-      await _scheduleDartNotifications(notificationService);
-      return;
-    }
-
-    // Batch processing to prevent UI freezer (Davey)
-    int count = 0;
-    for (var n in notifications) {
-      await notificationService.scheduleNativeClassNotification(n);
-      count++;
-      // Yield every 20 items to let UI breathe
-      if (count % 20 == 0) {
-        await Future.delayed(const Duration(milliseconds: 10));
+      if (notifications.isEmpty && _courses.isNotEmpty) {
+        await _scheduleDartNotifications(notificationService);
+        return;
       }
+
+      int count = 0;
+      for (var n in notifications) {
+        await notificationService.scheduleNativeClassNotification(n);
+        count++;
+        if (count % 20 == 0) {
+          await Future.delayed(const Duration(milliseconds: 10));
+        }
+      }
+    } catch (e) {
+      debugPrint('[ScheduleProvider] Notification scheduling failed: $e');
     }
   }
 
   Future<void> _scheduleDartNotifications(
     NotificationService notificationService,
   ) async {
-    if (_courseHours.isEmpty) return; // Need course hours to know times
+    if (_courseHours.isEmpty) return;
 
     int count = 0;
     for (var course in _courses) {
-      // Find start hour
       final startHourObj = _courseHours.firstWhere(
         (h) => h.id == course.startCourseHour,
-        orElse: () => _courseHours.first, // Fallback?
+        orElse: () => _courseHours.first,
       );
 
-      // Parse start time "07:00"
       final timeParts = startHourObj.startString.split(':');
       if (timeParts.length < 2) continue;
       final hour = int.parse(timeParts[0]);
       final minute = int.parse(timeParts[1]);
 
-      // Calculate dates for this course
-
       final semesterStart = DateTime.fromMillisecondsSinceEpoch(
         _currentSemester!.startDate,
       );
 
-      // Iterate weeks
       for (int w = course.fromWeek; w <= course.toWeek; w++) {
-        // Calculate date relative to Semester Start
-        // Week 1 starts at startDate.
-        // Week w starts at startDate + (w-1)*7 days.
-        // Then add (dayOfWeek - 2) days. (Mon=2 -> add 0).
-
         final weekStart = semesterStart.add(Duration(days: (w - 1) * 7));
-        // TLU dayOfWeek: 2=Mon ... 8=Sun.
-        // Dart DateTime: 1=Mon ... 7=Sun.
-        // weekStart is usually Monday? Assumed.
-        // We need to align with specific day.
-
-        // Let's assume startDate is Monday of Week 1.
-
-        final offsetDays = course.dayOfWeek - 2; // 2->0, 3->1...
+        final offsetDays = course.dayOfWeek - 2;
         final classDate = weekStart.add(Duration(days: offsetDays));
 
-        // Combine with time
         final classDateTime = DateTime(
-          classDate.year,
-          classDate.month,
-          classDate.day,
-          hour,
-          minute,
+          classDate.year, classDate.month, classDate.day, hour, minute,
         );
 
         await notificationService.scheduleClassNotifications(
-          course,
-          classDateTime,
-          course.dayOfWeek,
+          course, classDateTime, course.dayOfWeek,
           "${startHourObj.startString}-${startHourObj.endString}",
         );
 
@@ -492,12 +288,8 @@ class ScheduleProvider extends ChangeNotifier {
     }
   }
 
-  // Get active courses for a date
   List<Course> getActiveCourses(DateTime date) {
-    // 2=Monday...8=Sunday (TLU)
-    // date.weekday: 1=Monday...7=Sunday (Dart)
     final tluDayOfWeek = date.weekday + 1;
-
     return _courses.where((course) {
       return course.dayOfWeek == tluDayOfWeek && course.isActiveOn(date);
     }).toList();

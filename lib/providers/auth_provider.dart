@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:tlucalendar/core/cache/cache_manager.dart';
 import 'package:tlucalendar/features/auth/data/models/user_model.dart';
 import 'package:tlucalendar/services/auto_refresh_service.dart';
 import 'package:tlucalendar/services/log_service.dart';
@@ -130,6 +131,9 @@ class AuthProvider extends ChangeNotifier {
           await _storage.write(key: 'studentCode', value: studentCode);
           await _storage.write(key: 'password', value: password);
 
+          // Scope cache to this account
+          CacheManager.instance.setAccount(studentCode);
+
           // Fetch User Info
           _loginProgress = 'Đang lấy thông tin sinh viên...';
           _loginProgressPercent = 0.5;
@@ -224,6 +228,10 @@ class AuthProvider extends ChangeNotifier {
     await _storage.deleteAll();
     _rawTokenData = null;
     _rawTokenStr = null;
+
+    // Clear cache scope for this account
+    CacheManager.instance.clearAccount();
+    CacheManager.instance.invalidateAll();
 
     // Clear SQLite tables
     try {
