@@ -40,6 +40,8 @@
 >
 > TLU Calendar ban đầu được phát triển để hỗ trợ các khóa **K67 trở về trước**, khi sinh viên còn thiếu ứng dụng học tập trên thiết bị di động. Nay nhà trường đã hỗ trợ nền tảng ứng dụng di động, nên mình cho rằng vai trò của các ứng dụng bên thứ ba như TLU Calendar đã hoàn thành.
 >
+> Bên cạnh đó, việc tiếp tục phát triển hoặc cập nhật tính năng dựa trên hạ tầng mới của [OneTLU](https://sv.tlu.edu.vn/) có thể phát sinh rủi ro pháp lý liên quan đến đơn vị quản lý nền tảng. Vì vậy, mình quyết định ngừng phát triển các tính năng mới và không tiếp tục duy trì khả năng tương thích của TLU Calendar với nền tảng này. Mong các bạn thông cảm.
+>
 > **Cập nhật ngày 24/09/2026:** Mình chưa rõ việc chuyển dữ liệu cho các khóa trước K68 sẽ được triển khai và hoàn tất khi nào. Repository sẽ được duy trì ở trạng thái **bảo trì không thường xuyên** cho đến khi có thông báo về việc ngừng hỗ trợ hệ thống web cũ tại [sv1.tlu.edu.vn](https://sv1.tlu.edu.vn/).
 >
 > Cảm ơn các bạn đã ủng hộ và sử dụng ứng dụng trong thời gian qua.
