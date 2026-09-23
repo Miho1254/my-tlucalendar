@@ -16,6 +16,8 @@
 
 <a href="https://github.com/Miho1254/my-tlucalendar/releases/latest">Tải APK mới nhất</a>
 &nbsp;&middot;&nbsp;
+<a href="#thông-báo-về-tình-trạng-dự-án">Thông báo</a>
+&nbsp;&middot;&nbsp;
 <a href="#tính-năng">Tính năng</a>
 &nbsp;&middot;&nbsp;
 <a href="#cài-đặt">Cài đặt</a>
@@ -23,6 +25,24 @@
 <a href="#đóng-góp">Đóng góp</a>
 
 </div>
+
+---
+
+## 📢 Thông báo về tình trạng dự án
+
+> [!IMPORTANT]
+> **Cập nhật tháng 10/2026 · Dự án chuyển sang bảo trì không thường xuyên**
+>
+> Trường Đại học Thủy Lợi đã thông báo rằng sinh viên từ khóa K68 trở đi có ứng dụng học tập mới trên nền tảng **OneUni** và **OneTLU**:
+>
+> - [OneUni](https://ascvn.com.vn/)
+> - [OneTLU](https://sv.tlu.edu.vn/)
+>
+> TLU Calendar ban đầu được phát triển để hỗ trợ các khóa **K67 trở về trước**, khi sinh viên còn thiếu ứng dụng học tập trên thiết bị di động. Nay nhà trường đã hỗ trợ nền tảng ứng dụng di động, nên mình cho rằng vai trò của các ứng dụng bên thứ ba như TLU Calendar đã hoàn thành.
+>
+> **Cập nhật ngày 24/09/2026:** Mình chưa rõ việc chuyển dữ liệu cho các khóa trước K68 sẽ được triển khai và hoàn tất khi nào. Repository sẽ được duy trì ở trạng thái **bảo trì không thường xuyên** cho đến khi có thông báo về việc ngừng hỗ trợ hệ thống web cũ tại [sv1.tlu.edu.vn](https://sv1.tlu.edu.vn/).
+>
+> Cảm ơn các bạn đã ủng hộ và sử dụng ứng dụng trong thời gian qua.
 
 ---
 
